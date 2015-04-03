@@ -7,6 +7,7 @@
  * 在非递归版本上增加的，把识别的房间存入Oracle Spatial
  * 在上一版本基础上修改：聚类，构建矩形，构造线
  * 在readdxfmy1基础上修改程序，能存入每个门对应的房间集合。 也修改了TUYUAN.java文件，增加了Line::is_vertical()函数
+ * extract文件夹，即加入了git版本控制
  */
 package readdxfmy2;
 
@@ -107,6 +108,7 @@ public class Readdxfmy2 {
     public static List<String> filter=new ArrayList();//不去读取图元的图层集合
     public static List<String> mentc=new ArrayList();//门所在图层集合
     public static List<String> fangjtc=new ArrayList();//房间所在图层集合
+    public static List<String> strtc=new ArrayList();//楼梯所在的图层集合
     //public static List mentuy=new ArrayList();//存储门图层里的图元
     public static List<Line> doorlns=new ArrayList();//存储门图层里的线段图元
     public static List<Arc> doorarc=new ArrayList();//存储门图层里的弧图元
@@ -120,13 +122,14 @@ public class Readdxfmy2 {
     //public static String wintcnm="WINDOW";//门窗的图层名
     //public static List allty=new ArrayList();//存储所有的图元
     //public static List door=new ArrayList();//存由门变换过来的直线段
+    public static List<Line> stairlns=new LinkedList();//存储楼梯图层里的线段图元
     
     public static String resflname="roomzb.txt";//结果文件，保存每个房间的编号，点坐标
     
-    /*public static void connect_database(JGeometry geo){//调试用的，替换前一个函数，不读写数据库会快些。
+    public static void connect_database(JGeometry geo){//调试用的，替换前一个函数，不读写数据库会快些。
      return ;   
-    }*/
-    
+    }
+    /*
     public static void connect_database(JGeometry geo) throws InstantiationException, IllegalAccessException, SQLException{
            //建立数据库连接   
            String Driver="oracle.jdbc.driver.OracleDriver";    //连接数据库的方法    
@@ -154,7 +157,7 @@ public class Readdxfmy2 {
                } catch (ClassNotFoundException ex) {
                    Logger.getLogger(Readdxfmy2.class.getName()).log(Level.SEVERE, null, ex);
                }
-    }
+    }*/
     
     public static void store_door(String tbName,JGeometry geo,int n) throws InstantiationException, IllegalAccessException, SQLException{
            //建立数据库连接   
@@ -684,6 +687,7 @@ public class Readdxfmy2 {
              if(mentc.contains(tc)) doorlns.add(l1); //mentuy.add(l1);
              if(fangjtc.contains(tc)) roomlns.add(l1); //fangjtuy.add(l1);
              if(walltc.contains(tc)) walltuy.add(l1);
+             if(strtc.contains(tc)) stairlns.add(l1);
            }
            
            double minx=x1<x2?x1:x2;
@@ -1844,7 +1848,7 @@ public class Readdxfmy2 {
       bfw4.close();
     }
     
-    public static Point jiaodian(Line ln1,Line ln2){
+    public static Point jiaodian(Line ln1,Line ln2){//假设ln1和ln2斜率不同，则返回它们的交点
       if(Math.abs(ln1.qd.x-ln1.zd.x)<0.001){//ln1是竖直线，则ln2不是竖直线了
         double xl2=ln2.getxl();
         double b2=ln2.getb();
@@ -3031,6 +3035,100 @@ public class Readdxfmy2 {
       return sucmp;
     }
     
+    public static void Extract_Stairs(){
+      List<List<Line>> strs=new LinkedList();//内部的List是一个楼梯的线集合
+      for(int i=0;i<stairlns.size();++i)
+      {
+        List<Line> culst=new ArrayList();//一个楼梯集合或簇
+        Line ln1=stairlns.get(i);
+        culst.add(ln1);
+        for(int j=i+1;j<stairlns.size();++j)//从stairlns集合中找和ln1线相交的线，构成集合culst
+        {
+          Line ln2=stairlns.get(j);
+          Point jd=inter_point(ln1,ln2);//两线交点
+          if(jd==null) continue;
+          if(is_online(jd,ln1) && is_online(jd,ln2))//交点在两个线上，即两线相交
+          {
+            culst.add(ln2);
+            /*stairlns.remove(j);  这里不能remove，因为remove掉了，ln2就不能去找相交线了
+            j--;
+            i--;*/
+          }
+        }
+        boolean fg=false;//新簇culst的线 是否和 已存在的簇中的线 相交
+        for(int j=0;j<culst.size();++j)//对于新簇，遍历每一个线，看是否与以前的簇有相交，如果有，则合并
+        {
+          Line ln3=culst.get(j);
+          boolean fg2=false;//ln3与已存在的簇是否相交
+          List<Line> cur_cu=culst;//当新簇与多个簇相交时，应该把cur_cu加入到发现的相交的老簇中
+          for(int k=0;k<strs.size();++k)//遍历strs集合，即处理每个簇
+          {
+            List<Line> cu=strs.get(k);//每个簇
+            boolean flag=false;//ln3与cu中线是否相交
+            for(int x=0;x<cu.size();++x)//遍历每个簇
+            {
+              Line ln4=cu.get(x);
+              if(ln3==ln4)//比如ln2第一次被加入到ln1的簇里，而ln2自己也可以去形成它的相交线簇的。这样,ln2在两个簇里
+              {
+                flag=true;
+                break;
+              }
+              Point jd=inter_point(ln3,ln4);
+              if(jd==null) continue;
+              if(is_online(jd,ln3) && is_online(jd,ln4))//两线相交
+              {
+                flag=true;
+                break;
+              }
+            }
+            if(flag)
+            {
+              if(cur_cu!=culst)
+              {
+                strs.remove(cur_cu);
+                k--;
+              }
+              cu.addAll(cur_cu);
+              fg2=true;
+              //break;  这里不能break，因为可能新簇与多个已存在的簇相交
+              cur_cu=cu;
+            }
+          }
+          if(fg2)
+          {
+            fg=true;
+            break;
+          }
+        }
+        if(fg==false) strs.add(culst);//如果新簇和已存在的簇没有相交线，则加到strs集合
+      }
+    }
+    
+    public static Point inter_point(Line ln1,Line ln2){//相比于jiaodian函数，这是普通地计算两条线的交点，如果无交点则返回null
+      if(Math.abs(ln1.qd.x-ln1.zd.x)<0.001 && Math.abs(ln2.qd.x-ln2.zd.x)<0.001) return null;
+      if(Math.abs(ln1.qd.x-ln1.zd.x)<0.001){//ln1是竖直线，则ln2不是竖直线了
+        double xl2=ln2.getxl();
+        double b2=ln2.getb();
+        double y=xl2*ln1.qd.x+b2;
+        return new Point(ln1.qd.x,y);
+      }
+      if(Math.abs(ln2.qd.x-ln2.zd.x)<0.001){
+        double xl1=ln1.getxl();
+        double b1=ln1.getb();
+        double y=xl1*ln2.qd.x+b1;
+        return new Point(ln2.qd.x,y);
+      }
+      //没有竖直线
+      double k1=ln1.getxl();
+      double b1=ln1.getb();
+      double k2=ln2.getxl();
+      double b2=ln2.getb();
+      if(k1==k2) return null;//平行线无交点
+      double x=(b2-b1)/(k1-k2);
+      double y=k1*x+b1;
+      return new Point(x,y);
+    }
+    
     public static void main(String[] args) throws FileNotFoundException, IOException, Exception {
        // TODO code application logic here
        long startTime=System.currentTimeMillis();   //获取开始时间
@@ -3124,6 +3222,7 @@ public class Readdxfmy2 {
        fangjtc.add("WINDOW");
        fangjtc.add("COLUMN");
        fangjtc.add("WALL");
+       strtc.add("STAIR");
        
        File file=new File(fileName);
        FileReader fr=new FileReader(file);
@@ -3206,6 +3305,7 @@ public class Readdxfmy2 {
        readEntities(bfr);
        //createindex(); //创建索引。  感觉还是可以放在SQL文件里，因为创建数据库表还是要执行SQL文件的。在这里执行，如果索引不存在，drop index句就会异常。
        System.out.println("There!");
+       Extract_Stairs();
        Extract_Doors(500,1300,10/Math.PI);
        //my_preprocess(roomlns,roomlns);
        Extract_Rooms();
