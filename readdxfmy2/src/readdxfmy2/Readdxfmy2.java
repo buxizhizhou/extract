@@ -36,7 +36,7 @@ public class Readdxfmy2 {
     public static double ypxl=550;//300;近似数
     public static double jsjl=380;//300;//平行线间的可近似距离，一般为墙宽度
     public static double szxpc=10;//竖直线的偏差
-    
+    public static double stair_jsjl=550;//当落体仅由一组平行线构成，而且它们之间没其他楼梯图层的线相连。它们之间的距离设为此值
     
     //final public static String fileName="C:\\Users\\User\\Documents\\NetBeansProjects\\readdxflunwen\\一层平面图_t3.dxf";
     //final public static String fileName="C:\\Users\\User\\Documents\\NetBeansProjects\\readdxflunwen\\一层平面图窗户有线.dxf";
@@ -1760,7 +1760,7 @@ public class Readdxfmy2 {
               Line ln2=templst2.get(n);
               //lnps.get(j).get(n).add(ln2.qd);
               Point jdp=jiaodian(ln1,ln2);
-              if(is_online(jdp,ln1)&&is_online(jdp,ln2)){//交点在两条线上
+              if(is_online(jdp,ln1,jsjl)&&is_online(jdp,ln2,jsjl)){//交点在两条线上
                 lnps.get(i).get(m).add(jdp);
                 lnps.get(j).get(n).add(jdp);
               }
@@ -1871,14 +1871,14 @@ public class Readdxfmy2 {
       return new Point(x,y);
     }
     
-    public static boolean is_online(Point p,Line ln1){//判断交点是否近似在线上
+    public static boolean is_online(Point p,Line ln1,double distyz){//判断交点是否近似在线上，近似量为distyz
       //因为是交点，所以可以简便判断
       if(((p.x<ln1.qd.x)&&(p.x>ln1.zd.x))||((p.x<ln1.zd.x)&&(p.x>ln1.qd.x))) return true;
       if(((p.y<ln1.qd.y)&&(p.y>ln1.zd.y))||((p.y<ln1.zd.y)&&(p.y>ln1.qd.y))) return true;
       double dist1=p.distance(ln1.qd);
-      if(dist1<jsjl) return true;
+      if(dist1<distyz) return true;
       double dist2=p.distance(ln1.zd);
-      if(dist2<jsjl) return true;
+      if(dist2<distyz) return true;
       return false;
     }
     
@@ -1933,7 +1933,7 @@ public class Readdxfmy2 {
       //讲短线中和门相邻的去除
     }
     
-    public static double parallellndist(Line ln1,Line ln2){//计算两条平行线，对应端点之间距离和。返回最小距离和
+    public static double parallelln_sumdist(Line ln1,Line ln2){//计算两条平行线，对应端点之间距离和。返回最小距离和
       double dist1=ln1.qd.distance(ln2.qd)+ln1.zd.distance(ln2.zd);
       double dist2=ln1.qd.distance(ln2.zd)+ln1.zd.distance(ln2.qd);
       if(dist1<dist2) return dist1;
@@ -1977,7 +1977,7 @@ public class Readdxfmy2 {
           Line templn=zhlns.get(j);
           if(parallelln(dr,templn)&&parallel_contain(dr,templn)){
             //System.out.println("Hello!"+i);
-            double dist=parallellndist(dr,templn);
+            double dist=parallelln_sumdist(dr,templn);
             if(dist<mindist){
               mindist=dist;
               minindx=j;
@@ -3035,39 +3035,39 @@ public class Readdxfmy2 {
       return sucmp;
     }
     
-    public static void Extract_Stairs(){
+    public static void Extract_Stairs() throws IOException{
       List<List<Line>> strs=new LinkedList();//内部的List是一个楼梯的线集合
       for(int i=0;i<stairlns.size();++i)
       {
-        List<Line> culst=new ArrayList();//一个楼梯集合或簇
+        List<Line> ncu=new ArrayList();//一个楼梯集合或簇
         Line ln1=stairlns.get(i);
-        culst.add(ln1);
+        ncu.add(ln1);
         for(int j=i+1;j<stairlns.size();++j)//从stairlns集合中找和ln1线相交的线，构成集合culst
         {
           Line ln2=stairlns.get(j);
           Point jd=inter_point(ln1,ln2);//两线交点
           if(jd==null) continue;
-          if(is_online(jd,ln1) && is_online(jd,ln2))//交点在两个线上，即两线相交
+          if(is_online(jd,ln1,jsjl/10) && is_online(jd,ln2,jsjl/10))//交点在两个线上，即两线相交。这里近似量不能选择jsjl，否则可能将两个距离为jsjl的楼梯识别为一个了。
           {
-            culst.add(ln2);
+            ncu.add(ln2);
             /*stairlns.remove(j);  这里不能remove，因为remove掉了，ln2就不能去找相交线了
             j--;
             i--;*/
           }
         }
         boolean fg=false;//新簇culst的线 是否和 已存在的簇中的线 相交
-        for(int j=0;j<culst.size();++j)//对于新簇，遍历每一个线，看是否与以前的簇有相交，如果有，则合并
+        for(int j=0;j<ncu.size();++j)//对于新簇，遍历每一个线，看是否与以前的簇有相交，如果有，则合并
         {
-          Line ln3=culst.get(j);
+          Line ln3=ncu.get(j);
           boolean fg2=false;//ln3与已存在的簇是否相交
-          List<Line> cur_cu=culst;//当新簇与多个簇相交时，应该把cur_cu加入到发现的相交的老簇中
+          List<Line> cur_cu=ncu;//当新簇与多个簇相交时，应该把cur_cu加入到发现的相交的老簇中
           for(int k=0;k<strs.size();++k)//遍历strs集合，即处理每个簇
           {
-            List<Line> cu=strs.get(k);//每个簇
+            List<Line> jcu=strs.get(k);//每个簇
             boolean flag=false;//ln3与cu中线是否相交
-            for(int x=0;x<cu.size();++x)//遍历每个簇
+            for(int x=0;x<jcu.size();++x)//遍历每个簇
             {
-              Line ln4=cu.get(x);
+              Line ln4=jcu.get(x);
               if(ln3==ln4)//比如ln2第一次被加入到ln1的簇里，而ln2自己也可以去形成它的相交线簇的。这样,ln2在两个簇里
               {
                 flag=true;
@@ -3075,7 +3075,7 @@ public class Readdxfmy2 {
               }
               Point jd=inter_point(ln3,ln4);
               if(jd==null) continue;
-              if(is_online(jd,ln3) && is_online(jd,ln4))//两线相交
+              if(is_online(jd,ln3,jsjl/10) && is_online(jd,ln4,jsjl/10))//两线相交
               {
                 flag=true;
                 break;
@@ -3083,15 +3083,20 @@ public class Readdxfmy2 {
             }
             if(flag)
             {
-              if(cur_cu!=culst)
+              //cu.addAll(cur_cu);  这里不能简单地addAll，因为存在重复的线。当然了这对外包矩形没有影响
+              for(int y=0;y<cur_cu.size();++y)
+              {
+                Line templn=cur_cu.get(y);
+                if(jcu.contains(templn)==false)
+                  jcu.add(templn);
+              }
+              if(cur_cu!=ncu)//当前簇cur_cu已经合并到了jcu中，如果当前簇不是ncu的话，在应将其从簇集合strs中删除
               {
                 strs.remove(cur_cu);
-                k--;
               }
-              cu.addAll(cur_cu);
               fg2=true;
               //break;  这里不能break，因为可能新簇与多个已存在的簇相交
-              cur_cu=cu;
+              cur_cu=jcu;
             }
           }
           if(fg2)
@@ -3100,8 +3105,117 @@ public class Readdxfmy2 {
             break;
           }
         }
-        if(fg==false) strs.add(culst);//如果新簇和已存在的簇没有相交线，则加到strs集合
+        if(fg==false) strs.add(ncu);//如果新簇和已存在的簇没有相交线，则加到strs集合
       }
+      
+      //由于有的楼梯画作一组平行线，而无连接它们的线。所以这里搜集所有大小为1的簇
+      List<Line> sgllns=new LinkedList();
+      for(int i=0;i<strs.size();++i)//遍历每个簇
+      {
+        List<Line> tempstr=strs.get(i);
+        if(tempstr.size()==1) sgllns.add(tempstr.get(0));
+      }
+      //对sgnlns聚类，标准是：平行线且距离足够近的为一类   聚类的过程和上面的类似，只不过标准不太一样
+      List<List<Line>> cus=new LinkedList();//聚类后簇的集合
+      for(int i=0;i<sgllns.size();++i)
+      {
+        List<Line> ncu=new ArrayList();//新簇
+        Line ln1=sgllns.get(i);
+        ncu.add(ln1);
+        for(int j=i+1;j<sgllns.size();++j)
+        {
+          Line ln2=sgllns.get(j);
+          if(parallelln(ln1,ln2) && ln1.distoln(ln2)<stair_jsjl)//成员函数distoln是计算到另一平行线的距离
+          {
+            ncu.add(ln2);
+          }
+        }
+        //新簇和旧簇比较
+        boolean fg3=false;//新簇是否与cus中已存在的簇属于一类
+        for(int j=0;j<ncu.size();++j)//遍历新簇
+        {
+          Line ln3=ncu.get(j);
+          List<Line> cur_cu=ncu;
+          boolean fg2=false;//ln3是否与cus中已存在的簇属于一类
+          for(int k=0;k<cus.size();++k)
+          {
+            List<Line> jcu=cus.get(k);//旧簇
+            boolean fg=false;//ln3是否与jcu属于一类
+            for(int y=0;y<jcu.size();++y)//遍历旧簇
+            {
+              Line ln4=jcu.get(y);
+              if(ln3==ln4) { fg=true; break;}
+              if(parallelln(ln3,ln4)==false) break;//如果不平行，则这个簇整个都不会与ln3平行
+              if(ln3.distoln(ln4)<stair_jsjl)//满足要求，合并两个簇
+              {
+                fg=true;
+                break;
+              }
+            }
+            if(fg)
+            {
+              for(int x=0;x<cur_cu.size();++x)
+              {
+                Line ln4=cur_cu.get(x);
+                if(jcu.contains(ln4)==false)  jcu.add(ln4);
+              }
+              cur_cu=jcu;//新簇已合并到了jcu中，cur_cu始终指向新簇所合并到的簇
+              fg2=true;
+            }
+          }
+          if(fg2==true)//两个=号啊！！！
+          {
+            fg3=true;
+            break;
+          }
+        }
+        if(fg3==false) cus.add(ncu);
+      }
+      
+      strs.addAll(cus);//将由上面单线集合聚类而来的簇加入
+      //构造每个簇的外包矩形
+      List<List<Double>> strmbr=new LinkedList();
+      for(int i=0;i<strs.size();++i)//遍历每个簇
+      {
+        List<Line> tempstr=strs.get(i);
+        if(tempstr.size()<4) continue;//默认少于4条线不构成一个楼梯
+        double minx=1000000000.0,miny=1000000000.0,maxx=-1000000000.0,maxy=-1000000000;//最大最小值初值的设置
+        for(int j=0;j<tempstr.size();++j)
+        {
+          Line templn=tempstr.get(j);
+          if(templn.qd.x<minx) minx=templn.qd.x;
+          if(templn.zd.x<minx) minx=templn.zd.x;
+          if(templn.qd.x>maxx) maxx=templn.qd.x;
+          if(templn.zd.x>maxx) maxx=templn.zd.x;
+          if(templn.qd.y<miny) miny=templn.qd.y;
+          if(templn.zd.y<miny) miny=templn.zd.y;
+          if(templn.qd.y>maxy) maxy=templn.qd.y;
+          if(templn.zd.y>maxy) maxy=templn.zd.y;
+        }
+        List<Double> tempmbr=new ArrayList();
+        tempmbr.add(minx);
+        tempmbr.add(maxx);
+        tempmbr.add(miny);
+        tempmbr.add(maxy);
+        strmbr.add(tempmbr);
+      }
+      //写入到文件
+      File file=new File("楼梯.txt"); 
+      FileWriter fw=new FileWriter(file);
+      BufferedWriter bfw=new BufferedWriter(fw);
+      for(int i=0;i<strmbr.size();++i)//遍历每个mbr
+      {
+        List<Double> tempmbr=strmbr.get(i);
+        double minx=tempmbr.get(0);
+        double maxx=tempmbr.get(1);
+        double miny=tempmbr.get(2);
+        double maxy=tempmbr.get(3);
+        bfw.write("PLINE ");
+        bfw.write(maxx+","+maxy+" "+minx+","+maxy+" "+minx+","+miny+" "+maxx+","+miny+" "+maxx+","+maxy+" ");
+        bfw.newLine();
+      }
+      bfw.flush();
+      bfw.close();//没有这两句，竟然文件为空
     }
     
     public static Point inter_point(Line ln1,Line ln2){//相比于jiaodian函数，这是普通地计算两条线的交点，如果无交点则返回null
@@ -3178,14 +3292,16 @@ public class Readdxfmy2 {
        //fangjtc.add("COLUMN");
        fangjtc.add("WALL");*/
        
-       /*fileName="C:\\Users\\User\\Documents\\NetBeansProjects\\readdxfmy1\\data\\教学楼-左1.dxf";
+       /*fileName="C:\\Users\\hello\\Documents\\NetBeansProjects\\readdxfmy1\\data\\教学楼-左1.dxf";
        ypxl=550;//300;近似数
        jsjl=370+5;//300;//平行线间的可近似距离，一般为墙宽度
        szxpc=5;//竖直线的偏差
        mentc.add("WINDOW");
        //fangjtc.add("WINDOW");
        //fangjtc.add("COLUMN");
-       fangjtc.add("WALL");*/
+       fangjtc.add("WALL");
+       strtc.add("STAIR");
+       stair_jsjl=550;*/
        
        /*fileName="C:\\Users\\User\\Documents\\NetBeansProjects\\readdxfmy1\\data\\教学楼-左2.dxf";
        ypxl=550;//300;近似数
@@ -3214,7 +3330,8 @@ public class Readdxfmy2 {
        //fangjtc.add("COLUMN");
        fangjtc.add("WALL");*/
        
-       fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\一层平面图_t3.dxf";
+       fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\一层平面图.dxf";
+       //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\ts楼梯.dxf";
        ypxl=550;//300;近似数
        jsjl=240+50;//300;//平行线间的可近似距离，一般为墙宽度
        szxpc=5;//竖直线的偏差
@@ -3222,7 +3339,9 @@ public class Readdxfmy2 {
        fangjtc.add("WINDOW");
        fangjtc.add("COLUMN");
        fangjtc.add("WALL");
-       strtc.add("STAIR");
+       strtc.add("STAIR");/**/
+       
+       //stair_jsjl=jsjl;//暂时设为这个值
        
        File file=new File(fileName);
        FileReader fr=new FileReader(file);
@@ -3306,9 +3425,9 @@ public class Readdxfmy2 {
        //createindex(); //创建索引。  感觉还是可以放在SQL文件里，因为创建数据库表还是要执行SQL文件的。在这里执行，如果索引不存在，drop index句就会异常。
        System.out.println("There!");
        Extract_Stairs();
-       Extract_Doors(500,1300,10/Math.PI);
-       //my_preprocess(roomlns,roomlns);
-       Extract_Rooms();
+       //Extract_Doors(500,1300,10/Math.PI);
+             //my_preprocess(roomlns,roomlns);
+       //Extract_Rooms();
        System.out.println("tmaxx:"+tmaxx+"\ntmaxy:"+tmaxy+"\ntminx:"+tminx+"\ntminy:"+tminy);
        bfr.close();
        fr.close();
