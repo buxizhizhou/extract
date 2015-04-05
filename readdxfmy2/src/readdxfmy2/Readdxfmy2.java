@@ -36,7 +36,7 @@ public class Readdxfmy2 {
     public static double ypxl=550;//300;近似数
     public static double jsjl=380;//300;//平行线间的可近似距离，一般为墙宽度
     public static double szxpc=10;//竖直线的偏差
-    public static double stair_jsjl=550;//当落体仅由一组平行线构成，而且它们之间没其他楼梯图层的线相连。它们之间的距离设为此值
+    public static double stair_jsjl=550;//当楼梯仅由一组平行线构成，而且它们之间没其他楼梯图层的线相连。它们之间的距离设为此值
     
     //final public static String fileName="C:\\Users\\User\\Documents\\NetBeansProjects\\readdxflunwen\\一层平面图_t3.dxf";
     //final public static String fileName="C:\\Users\\User\\Documents\\NetBeansProjects\\readdxflunwen\\一层平面图窗户有线.dxf";
@@ -1871,9 +1871,9 @@ public class Readdxfmy2 {
       return new Point(x,y);
     }
     
-    public static boolean is_online(Point p,Line ln1,double distyz){//判断交点是否近似在线上，近似量为distyz
+    public static boolean is_online(Point p,Line ln1,double distyz){//判断交点是否近似在线上，近似量为distyz。近似量是用以考虑这个误差的，交点在端点很近的地方
       //因为是交点，所以可以简便判断
-      if(((p.x<ln1.qd.x)&&(p.x>ln1.zd.x))||((p.x<ln1.zd.x)&&(p.x>ln1.qd.x))) return true;
+      if(((p.x<ln1.qd.x)&&(p.x>ln1.zd.x))||((p.x<ln1.zd.x)&&(p.x>ln1.qd.x))) return true;//因为是交点，所以此判断说明交点在起点和终点之间
       if(((p.y<ln1.qd.y)&&(p.y>ln1.zd.y))||((p.y<ln1.zd.y)&&(p.y>ln1.qd.y))) return true;
       double dist1=p.distance(ln1.qd);
       if(dist1<distyz) return true;
@@ -3173,6 +3173,46 @@ public class Readdxfmy2 {
       }
       
       strs.addAll(cus);//将由上面单线集合聚类而来的簇加入
+      
+      //区别出电梯。判断电梯的标准：有一对 相交且交点平分它们自己 的线。（即矩形的对角线）
+      List<Integer> lftnm=new ArrayList();//电梯在strs中的序号集合
+      for(int i=0;i<strs.size();++i)
+      {
+        List<Line> tempstr=strs.get(i);
+        boolean flag2=false;//标记tempstr是否为电梯
+        for(int j=0;j<tempstr.size();++j)//遍历楼梯
+        {
+          Line ln1=tempstr.get(j);
+          boolean flag=false;//标记当前线是否找到一个合要求的另一线
+          for(int k=j+1;k<tempstr.size();++k)
+          {
+            Line ln2=tempstr.get(k);
+            Point jd=inter_point(ln1,ln2);
+            if(jd==null) continue;//两线平行，无交点
+            if(is_online(jd,ln1,0) && is_online(jd,ln2,0))//两线相交
+            {
+              double dist1q=jd.distance(ln1.qd);
+              double dist1z=jd.distance(ln1.zd);
+              if(aproximately_equal_double(dist1q,dist1z,1)==false)//交点不平分线ln1
+                  continue;
+              double dist2q=jd.distance(ln2.qd);
+              double dist2z=jd.distance(ln2.zd);
+              if(aproximately_equal_double(dist2q,dist2z,1))//交点平分线ln2
+              {
+                flag=true;
+                break;
+              }
+            }
+          }
+          if(flag)
+          {
+            flag2=true;
+            break;
+          }
+        }
+        if(flag2) lftnm.add(i);
+      }
+      
       //构造每个簇的外包矩形
       List<List<Double>> strmbr=new LinkedList();
       for(int i=0;i<strs.size();++i)//遍历每个簇
@@ -3199,12 +3239,32 @@ public class Readdxfmy2 {
         tempmbr.add(maxy);
         strmbr.add(tempmbr);
       }
+      
       //写入到文件
-      File file=new File("楼梯.txt"); 
+      File file2=new File("电梯.txt");//保存电梯
+      FileWriter fw2=new FileWriter(file2);
+      BufferedWriter bfw2=new BufferedWriter(fw2);
+      for(int i=0;i<strmbr.size();++i)//遍历每个mbr
+      {
+        if(lftnm.contains(i)==false) continue;//如果不是电梯则continue
+        List<Double> tempmbr=strmbr.get(i);
+        double minx=tempmbr.get(0);
+        double maxx=tempmbr.get(1);
+        double miny=tempmbr.get(2);
+        double maxy=tempmbr.get(3);
+        bfw2.write("PLINE ");
+        bfw2.write(maxx+","+maxy+" "+minx+","+maxy+" "+minx+","+miny+" "+maxx+","+miny+" "+maxx+","+maxy+" ");
+        bfw2.newLine();
+      }
+      bfw2.flush();
+      bfw2.close();
+      
+      File file=new File("楼梯.txt");//保存楼梯
       FileWriter fw=new FileWriter(file);
       BufferedWriter bfw=new BufferedWriter(fw);
       for(int i=0;i<strmbr.size();++i)//遍历每个mbr
       {
+        if(lftnm.contains(i)==true) continue;//如果是电梯则continue
         List<Double> tempmbr=strmbr.get(i);
         double minx=tempmbr.get(0);
         double maxx=tempmbr.get(1);
@@ -3216,6 +3276,11 @@ public class Readdxfmy2 {
       }
       bfw.flush();
       bfw.close();//没有这两句，竟然文件为空
+    }
+    
+    public static boolean aproximately_equal_double(double da, double db, double yz)
+    {//判断db和da是否近似相等，阈值为yz
+      return Math.abs(db-da)<=yz;
     }
     
     public static Point inter_point(Line ln1,Line ln2){//相比于jiaodian函数，这是普通地计算两条线的交点，如果无交点则返回null
@@ -3247,14 +3312,15 @@ public class Readdxfmy2 {
        // TODO code application logic here
        long startTime=System.currentTimeMillis();   //获取开始时间
        //fileName="C:\\\\Users\\\\User\\\\Documents\\\\NetBeansProjects\\\\readdxfmy1\\data\\test.dxf";
-       /*fileName="C:\\Users\\User\\Documents\\NetBeansProjects\\readdxfmy1\\data\\教学楼-右1.dxf";
+       fileName="C:\\Users\\hello\\Documents\\NetBeansProjects\\readdxfmy1\\data\\教学楼-右1.dxf";
        ypxl=550;//300;近似数
        jsjl=240+5;//300;//平行线间的可近似距离，一般为墙宽度
        szxpc=5;//竖直线的偏差
        mentc.add("WINDOW");
        fangjtc.add("WINDOW");
        //fangjtc.add("COLUMN");
-       fangjtc.add("WALL");*/
+       fangjtc.add("WALL");/**/
+       strtc.add("STAIR");
        
        /*fileName="C:\\Users\\User\\Documents\\NetBeansProjects\\readdxfmy1\\data\\教学楼-右2.dxf";
        ypxl=550;//300;近似数
@@ -3330,7 +3396,7 @@ public class Readdxfmy2 {
        //fangjtc.add("COLUMN");
        fangjtc.add("WALL");*/
        
-       fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\一层平面图.dxf";
+       /*fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\一层平面图.dxf";
        //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\ts楼梯.dxf";
        ypxl=550;//300;近似数
        jsjl=240+50;//300;//平行线间的可近似距离，一般为墙宽度
@@ -3339,7 +3405,7 @@ public class Readdxfmy2 {
        fangjtc.add("WINDOW");
        fangjtc.add("COLUMN");
        fangjtc.add("WALL");
-       strtc.add("STAIR");/**/
+       strtc.add("STAIR");*/
        
        //stair_jsjl=jsjl;//暂时设为这个值
        
