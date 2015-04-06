@@ -2198,7 +2198,7 @@ public class Readdxfmy2 {
     public static void Extract_Rooms() throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException, SQLException{
       System.out.println("墙线个数:"+roomlns.size());
       List<Line> dxlns=new ArrayList();//短线集合
-      rm_pre_process(dxlns);  //如果把这里注释掉，不把短线拿出来单独处理，则可能导致简化后的墙线偏离墙的轮廓一点
+//      rm_pre_process(dxlns);  //如果把这里注释掉，不把短线拿出来单独处理，则可能导致简化后的墙线偏离墙的轮廓一点
       
       roomlns.addAll(doorsteps);//合并提取房间所需要的线段，这里还没有考虑房间的弧线段   假设门槛不进行预处理的，方便确定门槛在roomlns中的索引
       boolean flag=false;//标识房间图层是否含门图层的，如果有，需要把门图层的线在后面加入到roomlns中
@@ -2212,7 +2212,7 @@ public class Readdxfmy2 {
       
       List<List<Line>> templns=new ArrayList();
       my_preprocess(roomlns,templns,CHANGXIAN);
-      my_preprocess(dxlns,templns,DUANXIAN);
+//      my_preprocess(dxlns,templns,DUANXIAN);
       List<Line> zhlns=new ArrayList();//用于抽取房间的线段集合
       lns_with_jd(templns,zhlns);
       
@@ -3639,7 +3639,7 @@ public class Readdxfmy2 {
        mentc.add("WINDOW");
        fangjtc.add("WINDOW");
        //fangjtc.add("0");
-       //fangjtc.add("COLUMN");
+       fangjtc.add("COLUMN");
        fangjtc.add("WALL");
        strtc.add("STAIR");/**/
        
