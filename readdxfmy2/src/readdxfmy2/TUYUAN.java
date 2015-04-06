@@ -102,7 +102,20 @@ class Line extends tuys{
   }
   public boolean is_vertical(){//是否是竖直的
     double pc=Math.abs(qd.x-zd.x);
-    if(pc<10) return true;
+    if(pc<10) 
+    {
+        //System.out.println("is vertical");
+        return true;
+    }
+    else return false;
+  }
+  public boolean is_horizontal(){//是否为水平线
+    double pc=Math.abs(qd.y-zd.y);
+    if(pc<10)
+    {
+        //System.out.println("is horizontal");
+        return true;
+    }    
     else return false;
   }
   public double getxl(){//计算线段斜率，调用之前应先判断是否为竖直直线

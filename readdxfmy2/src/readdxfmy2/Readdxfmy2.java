@@ -1434,25 +1434,33 @@ public class Readdxfmy2 {
       List<List<Line>> djlns=new ArrayList();//将线段集合按斜率等价划分后的等价类集合
       List<Double> djsy=new ArrayList();//djlns等价类集合中每个等价类的斜率。索引上下对应。索引0位置存的是竖直线集合，斜率存10000
       djsy.add(new Double(10000));
+      djsy.add(new Double(0));
       List<Line> linglst=new ArrayList();
+      List<Line> yilst=new ArrayList();
       djlns.add(linglst);//djlns索引0处是竖直线等价类
+      djlns.add(yilst);//djlns索引1处是水平线等价类
       for(int i=0;i<supset.size();++i){
         Line ln=supset.get(i);
         //System.out.println(i+" qdx:"+ln.qd.x+" qdy:"+ln.qd.y);
         //System.out.println("  zdx:"+ln.zd.x+" zdy:"+ln.zd.y);
         //System.out.println("PLINE "+ln.qd.x+","+ln.qd.y+" "+ln.zd.x+","+ln.zd.y+" ");
-        if(Math.abs(ln.qd.x-ln.zd.x)<szxpc){
-          if(djlns.get(0)==null){//竖直线放在索引0处
-            List<Line> templst=new ArrayList();
-            templst.add(ln);
-            djlns.add(templst);
-          }
-          else{
+        if(ln.is_vertical()){
+          //if(djlns.get(0)==null){//竖直线放在索引0处
+          //  List<Line> templst=new ArrayList();
+         //   templst.add(ln);
+         //   djlns.add(templst);
+         // }
+         // else{
             List<Line> templst=djlns.get(0);
             templst.add(ln);
-          }
+         // }
         }
-        else{//非竖直线
+        else if(ln.is_horizontal()){
+            //水平线放在索引1处
+            List<Line> templst=djlns.get(1);
+            templst.add(ln);
+        }
+        else{//非竖直非水平线
           double lnxl=ln.getxl();
           int lnsy=xl_find(djsy,lnxl);
           if(lnsy==djsy.size()){//没找到该斜率
@@ -1494,7 +1502,79 @@ public class Readdxfmy2 {
       }*/
       
       //聚类
-      List<List<List<Line>>> jllns=new ArrayList();//同斜率后，再按距离聚类后的结果集合
+      List<List<List<Line>>> jllns=new ArrayList();
+      for(int i=0;i<djlns.size();++i)//遍历每一个同斜率的集合
+      {
+        List<Line> txllst=djlns.get(i);//同斜率的集合
+        List<List<Line>> txljjllst=new ArrayList();//同斜率后，且距离近的聚类后集合  同斜率下面的，以near-line聚类后簇的集合
+        for(int j=0;j<txllst.size();++j)//遍历相同斜率集合中的每一条线，去找近距离线
+        {
+          Line ln1=txllst.get(j);
+          List<Line> ncu=new ArrayList();//以ln1找near-line后构成的新簇
+          ncu.add(ln1);
+          for(int k=j+1;k<txllst.size();++k)
+          {
+            Line ln2=txllst.get(k);
+            if(ln1.distoln(ln2)<jsjl)//near-line的阈值
+            {
+              ncu.add(ln2);
+            }
+          }
+          //将新簇与旧簇比较
+          boolean flag3=false;//标记新簇ncu是否和已存在的簇集合中哪个簇同类
+          for(int k=0;k<ncu.size();++k)//遍历新簇
+          {
+            Line ln3=ncu.get(k);//新簇中的ln3线
+            boolean flag2=false;//标记ln3在簇集合中是否找到同类的簇
+            List<Line> cur_cu=ncu;
+            for(int y=0;y<txljjllst.size();++y)//遍历旧簇的集合
+            {
+              List<Line> jcu=txljjllst.get(y);//已存在的旧簇
+              boolean flag=false;//标记ln3与jcu是否同类
+              for(int x=0;x<jcu.size();++x)//遍历旧簇
+              {
+                Line ln4=jcu.get(x);//旧簇中的ln4线
+                if(ln3==ln4)
+                {
+                  flag=true;
+                  break;
+                }
+                else if(ln3.distoln(ln4)<jsjl)
+                {
+                  flag=true;
+                  break;
+                }
+              }
+              if(flag)//新簇与jcu同类
+              {
+                flag2=true;
+                for(int z=0;z<cur_cu.size();z++)
+                {
+                  Line templn=cur_cu.get(z);
+                  if(jcu.contains(templn)==false)  jcu.add(templn);
+                }
+                if(cur_cu!=ncu)//当前簇cur_cu已经合并到了jcu中，如果当前簇不是ncu的话，在应将其从簇集合strs中删除
+                {
+                  txljjllst.remove(cur_cu);
+                  y--;
+                }
+                cur_cu=jcu;
+              }
+            }
+            if(flag2)
+            {
+              flag3=true;
+              //break;
+            }
+          }
+          if(flag3==false)//新簇ncu与已存在的簇都不同类，则追加到txljlllst
+          {
+            txljjllst.add(ncu);
+          }
+        }
+        jllns.add(txljjllst);
+      }
+      /*List<List<List<Line>>> jllns=new ArrayList();//同斜率后，再按距离聚类后的结果集合
       for(int i=0;i<djlns.size();++i){//遍历每个斜率
         List<Line> templst=djlns.get(i);
         List<List<Line>> templst2=new ArrayList();
@@ -1509,7 +1589,7 @@ public class Readdxfmy2 {
               //System.out.println("ln.distoln:"+ln.distoln(tln));
               if(ln.distoln(tln)<jsjl){
                 tlst.add(tln);
-                templst.remove(tln);
+                templst.remove(tln);//这里remove掉，可能对聚类有影响
                 m--;
                 //j--;
               }
@@ -1518,7 +1598,8 @@ public class Readdxfmy2 {
           templst2.add(tlst);         
         }
         jllns.add(templst2);
-      }
+      }旧的聚类，可能有问题*/
+      
       /*//print
       File file=new File("ts.txt"); 
       FileWriter fw=new FileWriter(file);
@@ -1542,9 +1623,11 @@ public class Readdxfmy2 {
       }
       bfw.close();*/
       
+      //下面都是针对水平和竖直的线簇
       //构造外包平行四边形
-      List<List<List<Double>>> djbj=new ArrayList();//四个边界。左、右、下、上   同一斜率，同一近似距离内，四个边界
+      List<List<List<Double>>> ssdjbj=new ArrayList();//四个边界。左、右、下、上   同一斜率，同一近似距离内，四个边界
       for(int i=0;i<jllns.size();++i){//遍历斜率
+        if(i!=0 && i!=1) continue;//如果不是垂直或水平的，则暂不处理
         List<List<Line>> templst=jllns.get(i);
         List<List<Double>> templst2=new ArrayList();
         for(int j=0;j<templst.size();++j){//遍历距离划分的小集合
@@ -1578,7 +1661,7 @@ public class Readdxfmy2 {
           tlst2.add(miny);
           templst2.add(tlst2);
         }
-        djbj.add(templst2);
+        ssdjbj.add(templst2);
       }
       
       //打印平行四边形
@@ -1590,8 +1673,8 @@ public class Readdxfmy2 {
       else
         fw=new FileWriter(file,true);//构造函数中的第二个参数true表示以追加形式写文件
       BufferedWriter bfw=new BufferedWriter(fw); 
-      for(int i=0;i<djbj.size();++i){
-        List<List<Double>> templst=djbj.get(i);
+      for(int i=0;i<ssdjbj.size();++i){
+        List<List<Double>> templst=ssdjbj.get(i);
         //System.out.println("size:"+templst.size());
         for(int j=0;j<templst.size();++j){//每个小类
           //bfw.write(i+" "+j);
@@ -1684,8 +1767,8 @@ public class Readdxfmy2 {
         }
       }
       else{*/
-        for(int i=0;i<djbj.size();++i){
-          List<List<Double>> templst=djbj.get(i);//同一斜率内，所有以近似距离划分的小类
+        for(int i=0;i<ssdjbj.size();++i){
+          List<List<Double>> templst=ssdjbj.get(i);//同一斜率内，所有以近似距离划分的小类
           List<Line> templst2=new ArrayList();
           for(int j=0;j<templst.size();++j){
             List<Double> tlst=templst.get(j);
@@ -1714,6 +1797,110 @@ public class Readdxfmy2 {
         }
       /*}*/
       
+      //针对斜线，进行上述类似处理
+      //构造外包平行四边形
+      List<List<List<Double>>> xxdjbj=new ArrayList();//四个边界。从右上点逆时针，8个坐标
+      for(int i=0;i<jllns.size();++i){//遍历斜率
+        if(i==0 || i==1) continue;//不处理垂直的和水平的线簇
+        List<List<Line>> templst=jllns.get(i);
+        List<List<Double>> templst2=new ArrayList();
+        for(int j=0;j<templst.size();++j){//遍历距离划分的小集合
+          List<Line> tlst=templst.get(j);
+          List<Double> tlst2=new ArrayList();
+          double minx=100000000;
+          double maxx=-100000000;
+          double miny=100000000;
+          double maxy=-100000000;
+          for(int k=0;k<tlst.size();++k){//遍历小集合内的线   此循环是先得到最小和最大y值
+            Line templn=tlst.get(k);
+            minx=minx<templn.qd.x?minx:templn.qd.x;
+            minx=minx<templn.zd.x?minx:templn.zd.x;
+            maxx=maxx>templn.qd.x?maxx:templn.qd.x;
+            maxx=maxx>templn.zd.x?maxx:templn.zd.x;
+            miny=miny<templn.qd.y?miny:templn.qd.y;
+            miny=miny<templn.zd.y?miny:templn.zd.y;
+            maxy=maxy>templn.qd.y?maxy:templn.qd.y;
+            maxy=maxy>templn.zd.y?maxy:templn.zd.y;
+          }
+          if((maxx-minx<0.1) || (maxy-miny<0.1)) continue;
+          double smaxx=-1000000000;
+          double sminx=1000000000;
+          double xmaxx=-1000000000;
+          double xminx=1000000000;
+          for(int k=0;k<tlst.size();++k)//这次遍历是计算每条线当y分别等于ymax和ymin时对应的x值，即x上和x下。然后比较得出ymax时最大和最小的x值，ymin时最大和最小的x值
+          {
+            Line templn=tlst.get(k);
+            double xl=templn.getxl();
+            double xb=templn.getb();
+            double xshang=(maxy-xb+0.0)/(xl+0.0);
+            double xxia=(miny-xb+0.0)/(xl+0.0);
+            smaxx=xshang>smaxx?xshang:smaxx;
+            sminx=xshang<sminx?xshang:sminx;
+            xmaxx=xxia>xmaxx?xxia:xmaxx;
+            xminx=xxia<xminx?xxia:xminx;
+          }
+          tlst2.add(smaxx);
+          tlst2.add(maxy);
+          tlst2.add(sminx);
+          tlst2.add(maxy);
+          tlst2.add(xminx);
+          tlst2.add(miny);
+          tlst2.add(xmaxx);
+          tlst2.add(miny);
+          tlst2.add(smaxx);//重复第一个点
+          tlst2.add(maxy);
+          templst2.add(tlst2);
+        }
+        xxdjbj.add(templst2);
+      }
+      //打印平行四边形
+      File file2=new File("pxsbx.txt"); 
+      FileWriter fw2=new FileWriter(file2,true);//构造函数中的第二个参数true表示以追加形式写文件
+      BufferedWriter bfw2=new BufferedWriter(fw2); 
+      for(int i=0;i<xxdjbj.size();++i){
+        List<List<Double>> templst=xxdjbj.get(i);
+        //System.out.println("size:"+templst.size());
+        for(int j=0;j<templst.size();++j){//每个小类
+          //bfw.write(i+" "+j);
+          bfw2.newLine();
+          bfw2.write("PLINE");
+          List<Double> tlst=templst.get(j);
+          for(int k=0;k<tlst.size();k=k+2){
+            bfw2.write(" "+tlst.get(k)+","+tlst.get(k+1));
+          }
+          bfw2.write(" ");
+          bfw2.newLine();
+        }
+        bfw2.newLine();
+        bfw2.newLine();
+        bfw2.flush();//注意这个
+      }
+      bfw2.close();
+      //由外包平行四边形构造线。即简化步骤
+      for(int i=0;i<xxdjbj.size();++i){
+          List<List<Double>> templst=xxdjbj.get(i);//同一斜率内，所有以近似距离划分的小类
+          List<Line> templst2=new ArrayList();
+          for(int j=0;j<templst.size();++j){
+            List<Double> tlst=templst.get(j);
+            double smaxx=tlst.get(0);
+            double sminx=tlst.get(2);
+            double xminx=tlst.get(4);
+            double xmaxx=tlst.get(6);
+            double maxy=tlst.get(1);
+            double miny=tlst.get(5);
+            double qx=0,qy=0,zx=0,zy=0;
+            //因为你简化后的线的斜率肯定是和原来线斜率要一样，所以可以直接下面这样对qx等赋值
+            qx=(smaxx+sminx)/2;
+            qy=maxy;
+            zx=(xmaxx+xminx)/2;
+            zy=miny;
+            Line ln=new Line(qx,qy,zx,zy);
+            //if(ln.length()>jsjl) 
+                templst2.add(ln);
+          }
+          lns.add(templst2);
+        }
+        
       //打印构造后的线
       File file3=new File("gzx.txt"); 
       FileWriter fw3=null;
@@ -1913,8 +2100,8 @@ public class Readdxfmy2 {
     }
     
     public static int xl_find(List<Double> djsy,double xl){//在djsy集合中找斜率xl，找到返回索引号；否则返回集合大小。
-      int i=1;
-      for(;i<djsy.size();++i){//位置0留空
+      int i=2;
+      for(;i<djsy.size();++i){//0号和1号是竖直和水平线，0号的斜率是随便设的。
         if(Math.abs(djsy.get(i)-xl)<1) return i;
       }
       return i;
@@ -2011,7 +2198,7 @@ public class Readdxfmy2 {
     public static void Extract_Rooms() throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException, SQLException{
       System.out.println("墙线个数:"+roomlns.size());
       List<Line> dxlns=new ArrayList();//短线集合
-      rm_pre_process(dxlns);
+      rm_pre_process(dxlns);  //如果把这里注释掉，不把短线拿出来单独处理，则可能导致简化后的墙线偏离墙的轮廓一点
       
       roomlns.addAll(doorsteps);//合并提取房间所需要的线段，这里还没有考虑房间的弧线段   假设门槛不进行预处理的，方便确定门槛在roomlns中的索引
       boolean flag=false;//标识房间图层是否含门图层的，如果有，需要把门图层的线在后面加入到roomlns中
@@ -2063,7 +2250,7 @@ public class Readdxfmy2 {
         queysx.add(ys);
         boolean rmflag=false;//当前线是否找到房间
         while(queue.isEmpty()==false){
-          if(queue.size()>50) break;
+          if(queue.size()>300) break;
           
           //System.out.println("queue:");
           //printqueue(queue,quebz);
@@ -2301,7 +2488,7 @@ public class Readdxfmy2 {
      }*/
      //房间含有哪些门，可以在最后的房间集合中判断
      Collections.sort(drlns);
-     save_doorsteps(drlns,zhlns);
+//     save_doorsteps(drlns,zhlns);
      for(int i=0;i<drlns.size();++i)
        System.out.print(drlns.get(i)+" ");
      List<List<Integer>>  door_fj=new ArrayList();//第n个元素表示第n号门经过的房间集合
@@ -2370,7 +2557,7 @@ public class Readdxfmy2 {
        }//for-j
        
        JGeometry geo=JGeometry.createLinearPolygon(fjzb, 2, zbsrid);
-       store("room",geo,i);
+//       store("room",geo,i);
        
        //System.out.println(str);
        bfw.newLine();
@@ -3066,12 +3253,14 @@ public class Readdxfmy2 {
             }
           }
         }
-        boolean fg=false;//新簇culst的线 是否和 已存在的簇中的线 相交
+        //新簇是否和旧簇同类
+        boolean fg=false;//新簇ncu的线 是否和 已存在的簇中的线 相交
+        List<Line> cur_cu=ncu;//当新簇与多个簇相交时，应该把cur_cu加入到发现的相交的老簇中    当前簇，始终指向合并了ncu的那个簇
         for(int j=0;j<ncu.size();++j)//对于新簇，遍历每一个线，看是否与以前的簇有相交，如果有，则合并
         {
           Line ln3=ncu.get(j);
           boolean fg2=false;//ln3与已存在的簇是否相交
-          List<Line> cur_cu=ncu;//当新簇与多个簇相交时，应该把cur_cu加入到发现的相交的老簇中
+     
           for(int k=0;k<strs.size();++k)//遍历strs集合，即处理每个簇
           {
             List<Line> jcu=strs.get(k);//每个簇
@@ -3114,6 +3303,7 @@ public class Readdxfmy2 {
               if(cur_cu!=ncu)//当前簇cur_cu已经合并到了jcu中，如果当前簇不是ncu的话，在应将其从簇集合strs中删除
               {
                 strs.remove(cur_cu);
+                k--;
               }
               fg2=true;
               //break;  这里不能break，因为可能新簇与多个已存在的簇相交
@@ -3123,7 +3313,7 @@ public class Readdxfmy2 {
           if(fg2)
           {
             fg=true;
-            break;
+            //break;  //这里似乎和flag一样不应该break
           }
         }
         if(fg==false) strs.add(ncu);//如果新簇和已存在的簇没有相交线，则加到strs集合
@@ -3222,6 +3412,8 @@ public class Readdxfmy2 {
               if(aproximately_equal_double(dist2q,dist2z,1))//交点平分线ln2
               {
                 flag=true;
+                System.out.println("电梯:");
+                System.out.println(dist1q+" "+dist1z+" "+dist2q+" "+dist2z);
                 break;
               }
             }
@@ -3237,6 +3429,7 @@ public class Readdxfmy2 {
       
       //构造每个簇的外包矩形
       List<List<Double>> strmbr=new LinkedList();
+      List<List<Double>> lftmbr=new LinkedList();//因为下面有一个少于4根线就跳过的步骤，所以不能把电梯的mbr也存入strmbr，然后用下标取出。那个步骤让下标已经对应不上。
       for(int i=0;i<strs.size();++i)//遍历每个簇
       {
         List<Line> tempstr=strs.get(i);
@@ -3259,17 +3452,17 @@ public class Readdxfmy2 {
         tempmbr.add(maxx);
         tempmbr.add(miny);
         tempmbr.add(maxy);
-        strmbr.add(tempmbr);
+        if(lftnm.contains(i)) lftmbr.add(tempmbr);
+        else strmbr.add(tempmbr);
       }
       
       //写入到文件
       File file2=new File("电梯.txt");//保存电梯
       FileWriter fw2=new FileWriter(file2);
       BufferedWriter bfw2=new BufferedWriter(fw2);
-      for(int i=0;i<strmbr.size();++i)//遍历每个mbr
+      for(int i=0;i<lftmbr.size();++i)//遍历每个mbr
       {
-        if(lftnm.contains(i)==false) continue;//如果不是电梯则continue
-        List<Double> tempmbr=strmbr.get(i);
+        List<Double> tempmbr=lftmbr.get(i);
         double minx=tempmbr.get(0);
         double maxx=tempmbr.get(1);
         double miny=tempmbr.get(2);
@@ -3286,7 +3479,6 @@ public class Readdxfmy2 {
       BufferedWriter bfw=new BufferedWriter(fw);
       for(int i=0;i<strmbr.size();++i)//遍历每个mbr
       {
-        if(lftnm.contains(i)==true) continue;//如果是电梯则continue
         List<Double> tempmbr=strmbr.get(i);
         double minx=tempmbr.get(0);
         double maxx=tempmbr.get(1);
@@ -3419,8 +3611,19 @@ public class Readdxfmy2 {
        //fangjtc.add("COLUMN");
        fangjtc.add("WALL");*/
        
-       /*fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\一层平面图.dxf";
-       //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\ts楼梯.dxf";
+       /*fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\ts斜线.dxf";
+       //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\ts外包平行四边形.dxf";
+       ypxl=550;//300;近似数
+       jsjl=340+50;//300;//平行线间的可近似距离，一般为墙宽度
+       szxpc=5;//竖直线的偏差
+       mentc.add("WINDOW");
+       fangjtc.add("WINDOW");
+       //fangjtc.add("COLUMN");
+       fangjtc.add("WALL");
+       strtc.add("STAIR");*/
+       
+       //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\一层平面图.dxf";
+       /*fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\ts楼梯.dxf";
        ypxl=550;//300;近似数
        jsjl=240+50;//300;//平行线间的可近似距离，一般为墙宽度
        szxpc=5;//竖直线的偏差
@@ -3432,13 +3635,14 @@ public class Readdxfmy2 {
        
        fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\电三-三层.dxf";
        ypxl=550;//300;近似数
-       jsjl=240+50;//300;//平行线间的可近似距离，一般为墙宽度
+       jsjl=340+50;//300;//平行线间的可近似距离，一般为墙宽度
        szxpc=5;//竖直线的偏差
        mentc.add("WINDOW");
        fangjtc.add("WINDOW");
-       fangjtc.add("COLUMN");
+       //fangjtc.add("0");
+       //fangjtc.add("COLUMN");
        fangjtc.add("WALL");
-       strtc.add("STAIR");
+       strtc.add("STAIR");/**/
        
        //stair_jsjl=jsjl;//暂时设为这个值
        
@@ -3524,9 +3728,9 @@ public class Readdxfmy2 {
        //createindex(); //创建索引。  感觉还是可以放在SQL文件里，因为创建数据库表还是要执行SQL文件的。在这里执行，如果索引不存在，drop index句就会异常。
        System.out.println("There!");
        Extract_Stairs();
-       //Extract_Doors(500,1300,10/Math.PI);
+       Extract_Doors(500,1300,10/Math.PI);
              //my_preprocess(roomlns,roomlns);
-       //Extract_Rooms();
+       Extract_Rooms();
        System.out.println("tmaxx:"+tmaxx+"\ntmaxy:"+tmaxy+"\ntminx:"+tminx+"\ntminy:"+tminy);
        bfr.close();
        fr.close();
