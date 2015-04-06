@@ -1505,7 +1505,7 @@ public class Readdxfmy2 {
       List<List<List<Line>>> jllns=new ArrayList();
       for(int i=0;i<djlns.size();++i)//遍历每一个同斜率的集合
       {
-        List<Line> txllst=djlns.get(i);//同斜率的集合
+        List<Line> txllst=djlns.get(i);//同斜率的集合  实际上是对每一个txllst聚类得到一个txljjllst，放在jllns集合
         List<List<Line>> txljjllst=new ArrayList();//同斜率后，且距离近的聚类后集合  同斜率下面的，以near-line聚类后簇的集合
         for(int j=0;j<txllst.size();++j)//遍历相同斜率集合中的每一条线，去找近距离线
         {
@@ -1564,7 +1564,7 @@ public class Readdxfmy2 {
             if(flag2)
             {
               flag3=true;
-              //break;
+              break;
             }
           }
           if(flag3==false)//新簇ncu与已存在的簇都不同类，则追加到txljlllst
@@ -3255,12 +3255,11 @@ public class Readdxfmy2 {
         }
         //新簇是否和旧簇同类
         boolean fg=false;//新簇ncu的线 是否和 已存在的簇中的线 相交
-        List<Line> cur_cu=ncu;//当新簇与多个簇相交时，应该把cur_cu加入到发现的相交的老簇中    当前簇，始终指向合并了ncu的那个簇
         for(int j=0;j<ncu.size();++j)//对于新簇，遍历每一个线，看是否与以前的簇有相交，如果有，则合并
         {
           Line ln3=ncu.get(j);
           boolean fg2=false;//ln3与已存在的簇是否相交
-     
+          List<Line> cur_cu=ncu;//当新簇与多个簇相交时，应该把cur_cu加入到发现的相交的老簇中    当前簇，始终指向合并了ncu的那个簇
           for(int k=0;k<strs.size();++k)//遍历strs集合，即处理每个簇
           {
             List<Line> jcu=strs.get(k);//每个簇
@@ -3313,7 +3312,7 @@ public class Readdxfmy2 {
           if(fg2)
           {
             fg=true;
-            //break;  //这里似乎和flag一样不应该break
+            break;  //这里似乎和flag一样不应该break
           }
         }
         if(fg==false) strs.add(ncu);//如果新簇和已存在的簇没有相交线，则加到strs集合
