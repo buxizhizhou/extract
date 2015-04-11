@@ -1694,6 +1694,7 @@ public class Readdxfmy2 {
       bfw.close();
       
       //由外包平行四边形构造线
+      
       /*List<Line> lns=new ArrayList();
       for(int i=0;i<djbj.size();++i){
         List<List<Double>> templst=djbj.get(i);
@@ -1777,13 +1778,13 @@ public class Readdxfmy2 {
             double maxx=tlst.get(2);
             double maxy=tlst.get(5);
             double qx=0,qy=0,zx=0,zy=0;
-            if(maxx-minx<maxy-miny){
+            if(i==0){//根据ssdjbj的定义知i为0时是竖直线竖直线的外包矩形简化线，是由x中值分别和maxy、miny构成的两点构成的线，如下
               qx=(maxx+minx)/2;
               qy=miny;
               zx=(maxx+minx)/2;
               zy=maxy;
             }
-            else{
+            else{//i为1时为水平线
               qx=minx;
               qy=(maxy+miny)/2;
               zx=maxx;
@@ -3632,14 +3633,15 @@ public class Readdxfmy2 {
        fangjtc.add("WALL");
        strtc.add("STAIR");*/
        
-       fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\电三-三层.dxf";
+       //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\电三-三层.dxf";
+       fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\电三右部.dxf";
        ypxl=550;//300;近似数
        jsjl=340+50;//300;//平行线间的可近似距离，一般为墙宽度
        szxpc=5;//竖直线的偏差
        mentc.add("WINDOW");
        fangjtc.add("WINDOW");
        //fangjtc.add("0");
-       fangjtc.add("COLUMN");
+       //fangjtc.add("COLUMN");
        fangjtc.add("WALL");
        strtc.add("STAIR");/**/
        
