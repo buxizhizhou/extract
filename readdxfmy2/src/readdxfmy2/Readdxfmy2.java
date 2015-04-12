@@ -129,8 +129,8 @@ public class Readdxfmy2 {
     public static void connect_database(JGeometry geo){//调试用的，替换前一个函数，不读写数据库会快些。
      return ;   
     }
-    /*
-    public static void connect_database(JGeometry geo) throws InstantiationException, IllegalAccessException, SQLException{
+    
+    /*public static void connect_database(JGeometry geo) throws InstantiationException, IllegalAccessException, SQLException{
            //建立数据库连接   
            String Driver="oracle.jdbc.driver.OracleDriver";    //连接数据库的方法    
            String URL="jdbc:oracle:thin:@127.0.0.1:1521:cad";    //cad为数据库的SID    
@@ -2492,9 +2492,11 @@ public class Readdxfmy2 {
      }*/
      //房间含有哪些门，可以在最后的房间集合中判断
      Collections.sort(drlns);
-//     save_doorsteps(drlns,zhlns);
+     save_doorsteps(drlns,zhlns);
+     System.out.print("门槛在zhlns中的下标：");
      for(int i=0;i<drlns.size();++i)
        System.out.print(drlns.get(i)+" ");
+     System.out.println();
      List<List<Integer>>  door_fj=new ArrayList();//第n个元素表示第n号门经过的房间集合
      for(int i=0;i<drlns.size();++i){
        List<Integer> templst=new ArrayList();
@@ -2502,8 +2504,10 @@ public class Readdxfmy2 {
      }
      //List<List<Integer>>  drnm=new ArrayList();//各房间经过的几个门
      for(int i=0;i<roomCandidates.size();++i){//遍历房间
+       System.out.println("\n"+i+"号房间");
        List<Integer> drlst=new ArrayList();//当前房间包含的门
        List<Integer> rmlst=roomCandidates.get(i);//当前房间
+       System.out.print("房间的线的索引:");
        for(int j=0;j<rmlst.size();++j){//遍历当前房间的每根线的索引号
          int num=rmlst.get(j);
          System.out.print(num+" ");
@@ -2514,13 +2518,15 @@ public class Readdxfmy2 {
            } 
          }
        }
-       System.out.println("\n"+i);
      }
-     save_topo(door_fj);
+     save_topo(door_fj);//测试后是对的。2015/4/12  格式：门号 房间号 房间号 ...
      
      File file=new File(resflname); 
      FileWriter fw=new FileWriter(file);
      BufferedWriter bfw=new BufferedWriter(fw);
+     File file2=new File("导入IndoorDB房间.txt");
+     FileWriter fw2=new FileWriter(file2);
+     BufferedWriter bfw2=new BufferedWriter(fw2);
      System.out.println("房间个数："+roomCandidates.size());
      for(int i=0;i<roomCandidates.size();++i){//遍历房间  
        List<Integer> rmlst=roomCandidates.get(i);
@@ -2529,12 +2535,13 @@ public class Readdxfmy2 {
        
        int fjlen=rmlst.size()*4;//坐标个数。  构成该房间的点个数:线段数*2。坐标个数为点个数的2倍。  没有重复首点是因为调用createLinearPolygon函数，可自动补上首点
        double fjzb[]=new double[fjlen];
-       
+       //int fjzb[]=new int[fjlen];
        
        //bfw.write("房间号："+i+"  线段数："+rmlst.size());//每组首行是 “房间编号  房间含有的线段数”
        bfw.newLine();
        bfw.flush();
        bfw.write("PLINE ");
+       bfw2.write(""+(i+1)+",room,1-"+(i+1)+",1-"+(i+1)+",");
        StringBuffer str=new StringBuffer("PLINE ");
        for(int j=0;j<rmlst.size();++j){//下面每行是 “线编号 起点x坐标 y坐标 终点x坐标 y坐标”
          Line templn=zhlns.get(rmlst.get(j));
@@ -2547,26 +2554,31 @@ public class Readdxfmy2 {
          }
          //System.out.println("线"+j+", "+tempqd.x+","+tempqd.y+" "+tempzd.x+","+tempzd.y);
          
-         fjzb[j*4]=tempqd.x;
-         fjzb[j*4+1]=tempqd.y;
+         fjzb[j*4]=(int)tempqd.x;
+         fjzb[j*4+1]=(int)tempqd.y;
          //fjzb[j*4+1]=tempqd.y-pylen*2;//y坐标向下偏移两个pylen距离。
-         fjzb[j*4+2]=tempzd.x;
-         fjzb[j*4+3]=tempzd.y;
+         fjzb[j*4+2]=(int)tempzd.x;
+         fjzb[j*4+3]=(int)tempzd.y;
          //fjzb[j*4+3]=tempzd.y-pylen*2;
          //if(j==0) { fjzb[fjlen-1]=tempqd.y; fjzb[fjlen-2]=tempqd.x;}//重复首点
          
          bfw.write(tempqd.x+","+tempqd.y+" "+tempzd.x+","+tempzd.y+" ");
          str.append(tempqd.x+","+tempqd.y+" "+tempzd.x+","+tempzd.y+" ");
          if((j+1)%6==0) { bfw.newLine(); bfw.write(" "); str.append(" \n ");}
+         
+         bfw2.write((int)tempqd.x+","+(int)tempqd.y+","+(int)tempzd.x+","+(int)tempzd.y+",");
        }//for-j
        
        JGeometry geo=JGeometry.createLinearPolygon(fjzb, 2, zbsrid);
-//       store("room",geo,i);
+//      store("room",geo,i+1);
        
        //System.out.println(str);
+       bfw2.newLine();
+       bfw2.flush();
        bfw.newLine();
        bfw.flush();
      }//for-i
+     bfw2.close();
      bfw.close();
      System.out.println("房间个数："+roomCandidates.size());
      
@@ -2579,11 +2591,11 @@ public class Readdxfmy2 {
       FileWriter fw=new FileWriter(file);
       BufferedWriter bfw=new BufferedWriter(fw);
       for(int i=0;i<lst.size();++i){
-        bfw.write(""+i);
+        bfw.write(""+(i+1));
         Line ln=zhlns.get(lst.get(i));
         double midx=(ln.qd.x+ln.zd.x)/2;
         double midy=(ln.qd.y+ln.zd.y)/2;
-        bfw.write(" "+midx+","+midy+",0");
+        bfw.write(" "+midx+","+midy+",0,door\n");
         bfw.flush();
       }
       bfw.close();
@@ -2596,7 +2608,7 @@ public class Readdxfmy2 {
         zb[1]=(ln.qd.y+ln.zd.y)/2;
         //zb[3]=0;
         JGeometry geo=JGeometry.createPoint(zb, 2, zbsrid);
-        store("door",geo,i);
+//        store("door",geo,i);
       }
     }
     
@@ -2606,9 +2618,9 @@ public class Readdxfmy2 {
       BufferedWriter bfw=new BufferedWriter(fw);
       for(int i=0;i<lst.size();++i){
         List<Integer> templst=lst.get(i);
-        bfw.write(""+i);
+        bfw.write(""+(i+1));                   //+1是因为IndoorDB里房间和门的编号都是从1而不是0开始。
         for(int j=0;j<templst.size();++j){
-          bfw.write(" "+templst.get(j));
+          bfw.write(" "+(templst.get(j)+1));
         }
         bfw.newLine();
         bfw.flush();
