@@ -129,8 +129,8 @@ public class Readdxfmy2 {
     public static void connect_database(JGeometry geo){//调试用的，替换前一个函数，不读写数据库会快些。
      return ;   
     }
-    
-    /*public static void connect_database(JGeometry geo) throws InstantiationException, IllegalAccessException, SQLException{
+    /*
+    public static void connect_database(JGeometry geo) throws InstantiationException, IllegalAccessException, SQLException{
            //建立数据库连接   
            String Driver="oracle.jdbc.driver.OracleDriver";    //连接数据库的方法    
            String URL="jdbc:oracle:thin:@127.0.0.1:1521:cad";    //cad为数据库的SID    
@@ -2176,7 +2176,8 @@ public class Readdxfmy2 {
             }
           }
         }
-        drlns.add(minindx);
+        if(minindx>=0) drlns.add(minindx);
+        else System.out.println("!!!门槛未找到对应的墙线");
       }
     }
     
@@ -2252,9 +2253,9 @@ public class Readdxfmy2 {
         quebz.add(csbz);
         ys.add(i);
         queysx.add(ys);
-        boolean rmflag=false;//当前线是否找到房间
+        int rmflag=0;//找到房间的个数
         while(queue.isEmpty()==false){
-          if(queue.size()>300) break;
+          if(queue.size()>200) break;
           
           //System.out.println("queue:");
           //printqueue(queue,quebz);
@@ -2268,8 +2269,9 @@ public class Readdxfmy2 {
           ys=queysx.remove();
           //printfj(quehd,hdbz);
           
-          if(rmflag || quehd.size()>20){// && quehd.size()!=roomCandidates.get(roomCandidates.size()-1).size()如果当前线已找到房间，而队首多边形的线的个数与最新加入的房间的线个数不等，则说明生长相同步长的多边形已遍历结束
-            break;//跳出while循环
+          if(rmflag>1 || quehd.size()>30 && quehd.size()!=roomCandidates.get(roomCandidates.size()-1).size())//如果当前线已找到房间，而队首多边形的线的个数与最新加入的房间的线个数不等，则说明生长相同步长的多边形已遍历结束
+          {
+              break;//跳出while循环
           }
           
           Point wp=null;//尾线的邻接点，即现多边形的尾点
@@ -2283,7 +2285,7 @@ public class Readdxfmy2 {
           if(quehd.size()>3 && aqlpnt(zhlns.get(quehd.get(0)).qd,wp)){//多边形的尾点和首点近似相等
             roomCandidates.add(quehd);
             roombz.add(hdbz);
-            rmflag=true;  //break;
+            rmflag++;  //break;
             continue;
           }
           
@@ -2316,7 +2318,8 @@ public class Readdxfmy2 {
        }
      }
      
-     post_process4(roomCandidates,roombz,2000*1000,zhlns);//2平方米的阈值
+     List<Integer> rmdrnum=new LinkedList();//每个房间含有的门个数
+     post_process4(roomCandidates,roombz,2000*1000,zhlns,drlns,rmdrnum);//2平方米的阈值
      /*
       //pre_process(roomlns);
       //my_preprocess(roomlns);
@@ -2520,11 +2523,12 @@ public class Readdxfmy2 {
        }
      }
      save_topo(door_fj);//测试后是对的。2015/4/12  格式：门号 房间号 房间号 ...
+     save_indoor_Space(drlns,zhlns,door_fj);//导入IndoorDB的数据格式
      
      File file=new File(resflname); 
      FileWriter fw=new FileWriter(file);
      BufferedWriter bfw=new BufferedWriter(fw);
-     File file2=new File("导入IndoorDB房间.txt");
+     File file2=new File("RoomGeometry.txt");
      FileWriter fw2=new FileWriter(file2);
      BufferedWriter bfw2=new BufferedWriter(fw2);
      System.out.println("房间个数："+roomCandidates.size());
@@ -2586,13 +2590,35 @@ public class Readdxfmy2 {
      //store_room_stg(roomCandidates);
    }
     
+    public static void save_indoor_Space(List<Integer> drlns,List<Line> zhlns,List<List<Integer>> door_fj) throws IOException
+    {
+      File file=new File("indoor_Space.txt");
+      FileWriter fw=new FileWriter(file);
+      BufferedWriter bfw=new BufferedWriter(fw);
+      for(int i=0;i<door_fj.size();++i){
+        List<Integer> templst=door_fj.get(i);
+        bfw.write(""+(i+1));                   //+1是因为IndoorDB里房间和门的编号都是从1而不是0开始。
+        for(int j=0;j<templst.size();++j){//写连接的房间
+          bfw.write(","+(templst.get(j)+1));
+        }
+        Line ln=zhlns.get(drlns.get(i));//由door_fj的定义知，door_fj和drlns的顺序是对应的
+        double midx=(int)(ln.qd.x+ln.zd.x)/2;
+        double midy=(int)(ln.qd.y+ln.zd.y)/2;
+        bfw.write(","+midx+","+midy+",0,door\n");
+        bfw.newLine();
+        bfw.flush();
+      }
+      bfw.close();
+    }
+    
     public static void save_doorsteps(List<Integer> lst,List<Line> zhlns) throws IOException, InstantiationException, IllegalAccessException, SQLException{
       File file=new File("doorstepszb.txt"); 
       FileWriter fw=new FileWriter(file);
       BufferedWriter bfw=new BufferedWriter(fw);
       for(int i=0;i<lst.size();++i){
         bfw.write(""+(i+1));
-        Line ln=zhlns.get(lst.get(i));
+        int k=lst.get(i);
+        Line ln=zhlns.get(k);
         double midx=(ln.qd.x+ln.zd.x)/2;
         double midy=(ln.qd.y+ln.zd.y)/2;
         bfw.write(" "+midx+","+midy+",0,door\n");
@@ -2604,8 +2630,8 @@ public class Readdxfmy2 {
       for(int i=0;i<doorsteps.size();++i){
         Line ln=doorsteps.get(i);
         double zb[]=new double[2];
-        zb[0]=(ln.qd.x+ln.zd.x)/2;
-        zb[1]=(ln.qd.y+ln.zd.y)/2;
+        zb[0]=(int)(ln.qd.x+ln.zd.x)/2;
+        zb[1]=(int)(ln.qd.y+ln.zd.y)/2;
         //zb[3]=0;
         JGeometry geo=JGeometry.createPoint(zb, 2, zbsrid);
 //        store("door",geo,i);
@@ -2699,7 +2725,7 @@ public class Readdxfmy2 {
             }
     }*/
     
-   public static void post_process4(List<List<Integer>> rmcddts,List<List<Integer>> rmbz,double mianji,List<Line> zhlns){
+   public static void post_process4(List<List<Integer>> rmcddts,List<List<Integer>> rmbz,double mianji,List<Line> zhlns,List<Integer> drlns,List<Integer> rmdrnum){
       //构造所有房间的最小外包矩形   优化：可以在房间构造过程中构造
       List<List<Double>> ret=new LinkedList();//所有房间的房间外包矩形
       for(int i=0;i<rmcddts.size();++i){
@@ -2739,28 +2765,72 @@ public class Readdxfmy2 {
         ret.add(fjret);
       }
       
-      //通过比较最小外包矩形，有相同最小外包矩形的视为相同房间，保留边数较多的
+      //计算各房间经过的门个数
+      for(int i=0;i<rmcddts.size();++i)//遍历房间候选集
+      {
+        List<Integer> fj=rmcddts.get(i);//房间fj
+        //List<Integer> drlst=new ArrayList();//房间含有的门的集合
+        int drnm=0;
+        for(int j=0;j<fj.size();++j)//遍历房间的每条线
+        {
+          int lnnum=fj.get(j);//房间的线在zhlns中的索引
+          if(drlns.contains(lnnum))//线索引是否包含在门索引集合中，即该线是否是门槛
+          {
+            //drlst.add();
+            drnm++;
+          }
+        }
+        rmdrnum.add(drnm);
+      }
+      
+      //通过比较最小外包矩形，有相同最小外包矩形的视为相同房间，保留经过门个数较多的。边数较多的
       for(int i=0;i<rmcddts.size();++i){
         List<Integer> fj1=rmcddts.get(i);
         List<Double> fjret1=ret.get(i);
+        int drnm1=rmdrnum.get(i);//门个数
         for(int j=i+1;j<rmcddts.size();++j){
           List<Integer> fj2=rmcddts.get(j);
           List<Double> fjret2=ret.get(j);
+          int drnm2=rmdrnum.get(j);
           if(fjretsame(fjret1,fjret2)){
-              if(fj1.size()>fj2.size()){
+              if(drnm1>drnm2)
+              {
                 rmcddts.remove(j);
                 rmbz.remove(j);
                 ret.remove(j);
+                rmdrnum.remove(j);
                 j--;
                 continue;
               }
-              else{
+              else if(drnm1<drnm2)
+              {
                 rmcddts.remove(i);
                 rmbz.remove(i);
                 ret.remove(i);
+                rmdrnum.remove(i);
                 i--;
                 break;
-              }//else
+              }
+              else
+              {
+                if(fj1.size()>fj2.size()){
+                  rmcddts.remove(j);
+                  rmbz.remove(j);
+                  ret.remove(j);
+                  rmdrnum.remove(j);
+                  j--;
+                  continue;
+                }
+                else{
+                  rmcddts.remove(i);
+                  rmbz.remove(i);
+                  ret.remove(i);
+                  rmdrnum.remove(i);
+                  i--;
+                  break;
+                }//else
+             }
+              /**/
           }//if-fjretsame
         }//for-j
       }//for-i
@@ -2812,12 +2882,14 @@ public class Readdxfmy2 {
             rmcddts.remove(j);
             rmbz.remove(j);
             ret.remove(j);
+            rmdrnum.remove(j);
             j--;
           }
           else if(res==2){
             rmcddts.remove(i);
             rmbz.remove(i);
             ret.remove(i);
+            rmdrnum.remove(i);
             i--;
             break;
           }
@@ -3637,8 +3709,8 @@ public class Readdxfmy2 {
        fangjtc.add("WALL");
        strtc.add("STAIR");*/
        
-       //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\一层平面图.dxf";
-       /*fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\ts楼梯.dxf";
+       fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\一层平面图.dxf";
+       //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\ts楼梯.dxf";
        ypxl=550;//300;近似数
        jsjl=240+50;//300;//平行线间的可近似距离，一般为墙宽度
        szxpc=5;//竖直线的偏差
@@ -3646,9 +3718,9 @@ public class Readdxfmy2 {
        fangjtc.add("WINDOW");
        fangjtc.add("COLUMN");
        fangjtc.add("WALL");
-       strtc.add("STAIR");*/
+       strtc.add("STAIR");/**/
        
-       //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\电三-三层.dxf";
+      /* //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\电三-三层.dxf";
        //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\电三右部.dxf";
        fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\电三右部2.dxf";
        //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\ts电三一个房间.dxf";
@@ -3660,7 +3732,7 @@ public class Readdxfmy2 {
        //fangjtc.add("0");
        fangjtc.add("COLUMN");
        fangjtc.add("WALL");
-       strtc.add("STAIR");/**/
+       strtc.add("STAIR");*/
        
        //stair_jsjl=jsjl;//暂时设为这个值
        
