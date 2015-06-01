@@ -2632,6 +2632,14 @@ public class Readdxfmy2 {
         for(int j=0;j<templst.size();++j){//写连接的房间
           bfw.write(","+(templst.get(j)+1));
         }
+        if(templst.size()==0)
+        {
+          bfw.write(", , ");
+        }
+        else if(templst.size()==1)
+        {
+          bfw.write(", ");
+        }
         Line ln=zhlns.get(drlns.get(i));//由door_fj的定义知，door_fj和drlns的顺序是对应的
         double midx=(int)(ln.qd.x+ln.zd.x)/2;
         double midy=(int)(ln.qd.y+ln.zd.y)/2;

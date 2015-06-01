@@ -7,6 +7,7 @@
 4.topo.txt每行的格式是：门号 房间号 房间号 ... （该门所经过的所有房间号）
 
 5.doorstepszb.txt是门槛最后的以一个点存的坐标，用于导入indoordb。
+indoorDB里indoor_Space.txt每行格式：门id,房间id,房间id,门的三维坐标,类型
 
 6.在显示门主题时，浏览器报以下错误：MAPVIEWER-05523:无法处理来自MapViewer服务器的响应。处理FOI请求时出错。ORA-13208:对运算符[window SRID does not matcha layer SRID]求值时出现内部错误。ORA-06512:在"MDSYS.SDO_INDEX_METHOD_10I",line 333
 我检查出来是门主题加载不了。首先我对门表进行建索引、插入metadata；之后在数据读入部分，把原本是double类型改为int类型存入，因为坐标小数点后面可能很多，可能会有影响。上面两个每个修改后，都刷新了页面还是错误，最后删除了主题和地图的等的缓存才好了，但是不知道是哪个措施修复了这个错误。
