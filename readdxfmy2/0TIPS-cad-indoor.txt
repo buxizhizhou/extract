@@ -1,0 +1,20 @@
+1.使用JDK 1.7好像有问题，反正换回JDK 1.6后是没有问题了。
+
+2.先把要用到的表建好，再运行IndoorDB的建表操作。否则IndoorDB中将door定义为类型，将room定义为视图，你就可能建不了要做到的这两张表了。
+
+3.zhlns.txt是所有预处理结束后的线集合，也就是即将要用于构建房间的线集合。可以直接复制这里的内容到CAD命令行里画线看看。
+
+4.topo.txt每行的格式是：门号 房间号 房间号 ... （该门所经过的所有房间号）
+
+5.doorstepszb.txt是门槛最后的以一个点存的坐标，用于导入indoordb。
+
+6.在显示门主题时，浏览器报以下错误：MAPVIEWER-05523:无法处理来自MapViewer服务器的响应。处理FOI请求时出错。ORA-13208:对运算符[window SRID does not matcha layer SRID]求值时出现内部错误。ORA-06512:在"MDSYS.SDO_INDEX_METHOD_10I",line 333
+我检查出来是门主题加载不了。首先我对门表进行建索引、插入metadata；之后在数据读入部分，把原本是double类型改为int类型存入，因为坐标小数点后面可能很多，可能会有影响。上面两个每个修改后，都刷新了页面还是错误，最后删除了主题和地图的等的缓存才好了，但是不知道是哪个措施修复了这个错误。
+
+7.程序运行结束后，需要用IndoorCAD页面进行增删改之类的修正。但是还需要自己手动修改房间和拓扑数据。在indoor_Space.txt需要修改有的门连接的房间，因为你刚刚手动增加的房间的拓扑关系需要你在这里手动加入。在RoomGeometry中需要修改房间的类型，有的是corridor，有的是电梯。（另外，有次IndoorDB页面导航查询时，明明显示找到了起始房间号、终止房间号，但查询结果为空，不能画出路线。原因可能是当时没有走廊类型，都为房间类型；因为后来加入走廊类型，可以导航画出路线了。。。）
+
+8.之后运行IndoorDB的code中的import中的read_indoorSpace.sql、read_IndoorMap.sql文件。注意之前至少需要把RoomGeometry.txt中的数据复制到RoomGeometryMap.txt中，“至少”的意思是，后者中本应该存的是，虚拟门把凹多边形划分后的数据。
+
+9.导入IndoorDB的时候，在运行read_indoorSpace.sql后，可以先在结果里看select dual的结果是否为0，为1的话就有问题了。可以执行注释里的select * from building_door等看一下数据是否导入。
+
+10.运行read_indoorSpace.sql时出现下标超出范围等错误，就要看看行数是否设置对，注意RoomGeometry和RoomGeometryMap两个文件，不要忘记一个。另外像“ORA-06502:PL/SQL:数字或值错误：NULL索引表键值”这样的错误，可能是数据有些问题，仔细检查，比如门是否连接了两个房间

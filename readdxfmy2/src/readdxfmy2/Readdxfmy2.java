@@ -2525,6 +2525,8 @@ public class Readdxfmy2 {
      save_topo(door_fj);//测试后是对的。2015/4/12  格式：门号 房间号 房间号 ...
      save_indoor_Space(drlns,zhlns,door_fj);//导入IndoorDB的数据格式
      
+     save_xx_rooms(roomCandidates,roombz,zhlns);
+     
      File file=new File(resflname); 
      FileWriter fw=new FileWriter(file);
      BufferedWriter bfw=new BufferedWriter(fw);
@@ -2589,6 +2591,35 @@ public class Readdxfmy2 {
      //以IndoorSTG方式存储房间
      //store_room_stg(roomCandidates);
    }
+    
+    public static void save_xx_rooms(List<List<Integer>> roomCandidates, List<List<Integer>> roombz, List<Line> zhlns) throws IOException
+    {//按和晓翔约定的格式存储房间
+      File file2=new File("xx_rooms.txt");
+      FileWriter fw2=new FileWriter(file2);
+      BufferedWriter bfw2=new BufferedWriter(fw2);
+      for(int i=0;i<roomCandidates.size();++i){//遍历房间  
+        List<Integer> rmlst=roomCandidates.get(i);
+        List<Integer> rmbz=roombz.get(i);
+       
+        bfw2.write((i+1)+",");
+        for(int j=0;j<rmlst.size();++j){//下面每行是 “线编号 起点x坐标 y坐标 终点x坐标 y坐标”
+          Line templn=zhlns.get(rmlst.get(j));
+          Point tempqd=templn.qd;
+          Point tempzd=templn.zd;
+          int bz=rmbz.get(j);//当前线段进行下一次后继时的邻接点，初始为ZHONGDIAN
+          if(bz==ZHONGDIAN){
+            tempqd=templn.zd;
+            tempzd=templn.qd;
+          }
+
+          bfw2.write((int)tempqd.x+","+(int)tempqd.y+","+(int)tempzd.x+","+(int)tempzd.y+",");//按整型存的
+        }//for-j
+       
+        bfw2.newLine();
+        bfw2.flush();
+      }//for-i
+      bfw2.close();
+    }
     
     public static void save_indoor_Space(List<Integer> drlns,List<Line> zhlns,List<List<Integer>> door_fj) throws IOException
     {
