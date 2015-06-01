@@ -1,3 +1,18 @@
+command-roomzb.txt是CAD命令格式的房间坐标信息
+command-doorlns.txt是CAD命令格式的门槛坐标信息
+command-zhlns.txt是CAD命令格式的所有预处理结束后、用于构成房间的预处理后线
+
+修改后用于导入IndoorDB的文件是
+RoomGeometry.txt 按IndoorDB格式存储房间几何信息
+indoor_Space.txt 按IndoorDB格式存储门坐标和拓扑信息，需要对缺失了的门所连接的房间进行手动修改
+
+和晓翔约定的数据格式文件
+xx_rooms.txt 房间几何信息
+indoor_Space.txt 拓扑信息
+
+其他文件
+zhlns.txt
+
 1.使用JDK 1.7好像有问题，反正换回JDK 1.6后是没有问题了。
 
 2.先把要用到的表建好，再运行IndoorDB的建表操作。否则IndoorDB中将door定义为类型，将room定义为视图，你就可能建不了要做到的这两张表了。
@@ -8,6 +23,7 @@
 
 5.doorstepszb.txt是门槛最后的以一个点存的坐标，用于导入indoordb。
 indoorDB里indoor_Space.txt每行格式：门id,房间id,房间id,门的三维坐标,类型
+门是按门槛对于的zhlns的中点从下到上、从左到右进行排序了。
 
 6.在显示门主题时，浏览器报以下错误：MAPVIEWER-05523:无法处理来自MapViewer服务器的响应。处理FOI请求时出错。ORA-13208:对运算符[window SRID does not matcha layer SRID]求值时出现内部错误。ORA-06512:在"MDSYS.SDO_INDEX_METHOD_10I",line 333
 我检查出来是门主题加载不了。首先我对门表进行建索引、插入metadata；之后在数据读入部分，把原本是double类型改为int类型存入，因为坐标小数点后面可能很多，可能会有影响。上面两个每个修改后，都刷新了页面还是错误，最后删除了主题和地图的等的缓存才好了，但是不知道是哪个措施修复了这个错误。

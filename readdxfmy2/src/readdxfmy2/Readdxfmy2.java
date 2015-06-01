@@ -124,7 +124,7 @@ public class Readdxfmy2 {
     //public static List door=new ArrayList();//存由门变换过来的直线段
     public static List<Line> stairlns=new LinkedList();//存储楼梯图层里的线段图元
     
-    public static String resflname="roomzb.txt";//结果文件，保存每个房间的编号，点坐标
+    public static String resflname="command-roomzb.txt";//结果文件，保存每个房间的编号，点坐标
     
     public static void connect_database(JGeometry geo){//调试用的，替换前一个函数，不读写数据库会快些。
      return ;   
@@ -2022,7 +2022,7 @@ public class Readdxfmy2 {
       }
       
       //打印最后的线段集合
-      File file4=new File("zhlns.txt"); 
+      File file4=new File("command-zhlns.txt"); 
       FileWriter fw4=null;
       //if(moshi==CHANGXIAN){
         fw4=new FileWriter(file4);
@@ -2182,7 +2182,7 @@ public class Readdxfmy2 {
     }
     
     public static void save_doorlns(List<Line> zhlns,List<Integer> drlns) throws IOException{
-      File file=new File("zhdoorsteps.txt"); 
+      File file=new File("command-doorlns.txt"); 
       FileWriter fw=new FileWriter(file);
       BufferedWriter bfw=new BufferedWriter(fw);
       for(int i=0;i<drlns.size();++i){
@@ -2224,7 +2224,6 @@ public class Readdxfmy2 {
       //找门槛对应的zhlns
       List<Integer> drlns=new ArrayList();//门槛线对应的zhlns下标
       find_doorlns(zhlns,doorsteps,drlns);
-      save_doorlns(zhlns,drlns);
       
       double pylen=tmaxy-tminy+20;//20是原图的tminy与新图的tmaxy之间的间隔    偏移长度
       //store_predxf(pylen);
@@ -2494,7 +2493,11 @@ public class Readdxfmy2 {
        }
      }*/
      //房间含有哪些门，可以在最后的房间集合中判断
-     Collections.sort(drlns);
+     //Collections.sort(drlns);
+     door_sort(drlns,zhlns,0,drlns.size()-1);
+     
+     save_doorlns(zhlns,drlns);
+     
      save_doorsteps(drlns,zhlns);
      System.out.print("门槛在zhlns中的下标：");
      for(int i=0;i<drlns.size();++i)
@@ -2507,17 +2510,22 @@ public class Readdxfmy2 {
      }
      //List<List<Integer>>  drnm=new ArrayList();//各房间经过的几个门
      for(int i=0;i<roomCandidates.size();++i){//遍历房间
-       System.out.println("\n"+i+"号房间");
+       System.out.println("\n"+(i+1)+"号房间");
        List<Integer> drlst=new ArrayList();//当前房间包含的门
        List<Integer> rmlst=roomCandidates.get(i);//当前房间
        System.out.print("房间的线的索引:");
+       for(int j=0;j<rmlst.size();++j)
+           System.out.print(rmlst.get(j)+" ");
+       System.out.println();
        for(int j=0;j<rmlst.size();++j){//遍历当前房间的每根线的索引号
          int num=rmlst.get(j);
-         System.out.print(num+" ");
+         //System.out.print(num+" ");
          List<Integer> tlst=new ArrayList();//当前房间经过了哪些门的索引号
-         if(bi_search(drlns,num,tlst)){//当前房间的线是否在门集合中，是门集合中第几个线
+         //if(bi_search(drlns,num,tlst)){//当前房间的线是否在门集合中，是门集合中第几个线
+         if(door_search(drlns,num,tlst)){//由于drlns现在不是数字上有序的了，所以不能用bi_search
            for(int k=0;k<tlst.size();++k){
              door_fj.get(tlst.get(k)).add(i);//在第tlst.get(k)号门的对应房间集合添加第i号房间
+             System.out.print("该房间经过了第 "+tlst.get(k)+" 号门");
            } 
          }
        }
@@ -2525,7 +2533,7 @@ public class Readdxfmy2 {
      save_topo(door_fj);//测试后是对的。2015/4/12  格式：门号 房间号 房间号 ...
      save_indoor_Space(drlns,zhlns,door_fj);//导入IndoorDB的数据格式
      
-     save_xx_rooms(roomCandidates,roombz,zhlns);
+     save_xx_rooms(roomCandidates,roombz,zhlns);//按和晓翔约定的方式存储房间坐标信息
      
      File file=new File(resflname); 
      FileWriter fw=new FileWriter(file);
@@ -2592,6 +2600,83 @@ public class Readdxfmy2 {
      //store_room_stg(roomCandidates);
    }
     
+   public static boolean door_search(List<Integer> drlns,int num,List<Integer> tlst)//在tlst中返回drlns中所有等于num值的索引号
+   {
+     boolean flag=false;
+     for(int i=0;i<drlns.size();++i)
+     {
+       int k=drlns.get(i);
+       if(k==num)
+       {
+         tlst.add(i);
+         flag=true;
+       }
+     }
+     return flag;
+   }
+   
+   public static boolean bi_search(List<Integer> lst,int num,List<Integer> tlst){//折半查找。然后在tlst中返回lst中所有等于num值的索引号
+      int mid=-1;
+      int low=0;
+      int high=lst.size()-1;
+      while(low<=high){
+        mid=(low+high)/2;
+        if(lst.get(mid) ==num) break;
+        else if(lst.get(mid) >num){
+          high=mid-1;
+        }
+        else low=mid+1;
+      }
+      if(low>high) return false;//没找到
+      tlst.add(mid);//mid索引处是要找的，然后在mid索引的前后再找有没有
+      for(int i=mid-1;i>0;--i){
+        if(lst.get(i)==num) tlst.add(i);
+        else break;
+      }
+      for(int i=mid+1;i<lst.size();++i){
+        if(lst.get(i)==num) tlst.add(i);
+        else break;
+      }
+      return true;
+    }
+    
+   public static void door_sort(List<Integer> drlns,List<Line> zhlns,int p,int r)
+   {
+     if(p<r)
+     {
+       int q=partition(drlns,zhlns,p,r);
+       door_sort(drlns,zhlns,p,q-1);
+       door_sort(drlns,zhlns,q+1,r);
+     }
+   }
+   
+   public static int partition(List<Integer> drlns,List<Line> zhlns,int p,int r)
+   {
+     int x=drlns.get(r);
+     Line lnx=zhlns.get(x);
+     int i=p-1;
+     for(int j=p;j<=r-1;++j)
+     {
+       int y=drlns.get(j);
+       Line lny=zhlns.get(y);
+       if(lny.comparetoline(lnx)<=0)
+       {
+         i=i+1;
+         exchange(drlns,i,j);
+       }
+     }
+     exchange(drlns,i+1,r);
+     return i+1;
+   }
+   
+   public static void exchange(List<Integer> drlns,int i,int j)
+   {
+     int ti=drlns.get(i);
+     int tj=drlns.get(j);
+     drlns.set(i, tj);
+     drlns.set(j, ti);
+   }
+   
     public static void save_xx_rooms(List<List<Integer>> roomCandidates, List<List<Integer>> roombz, List<Line> zhlns) throws IOException
     {//按和晓翔约定的格式存储房间
       File file2=new File("xx_rooms.txt");
@@ -2629,17 +2714,19 @@ public class Readdxfmy2 {
       for(int i=0;i<door_fj.size();++i){
         List<Integer> templst=door_fj.get(i);
         bfw.write(""+(i+1));                   //+1是因为IndoorDB里房间和门的编号都是从1而不是0开始。
+        
         for(int j=0;j<templst.size();++j){//写连接的房间
           bfw.write(","+(templst.get(j)+1));
         }
-        if(templst.size()==0)
+        if(templst.size()==0)//如果没找到相邻的房间，则增加两个逗号和中间的房间留空
         {
-          bfw.write(", , ");
+          bfw.write(",,");
         }
-        else if(templst.size()==1)
+        else if(templst.size()==1)//如果只找到一个房间，则增加一个逗号和另一个房间留空
         {
-          bfw.write(", ");
+          bfw.write(",");
         }
+        
         Line ln=zhlns.get(drlns.get(i));//由door_fj的定义知，door_fj和drlns的顺序是对应的
         double midx=(int)(ln.qd.x+ln.zd.x)/2;
         double midy=(int)(ln.qd.y+ln.zd.y)/2;
@@ -2662,6 +2749,7 @@ public class Readdxfmy2 {
         double midy=(ln.qd.y+ln.zd.y)/2;
         bfw.write(" "+midx+","+midy+",0,door\n");
         bfw.flush();
+        bfw.newLine();
       }
       bfw.close();
       
@@ -2691,31 +2779,6 @@ public class Readdxfmy2 {
         bfw.flush();
       }
       bfw.close();
-    }
-    
-    public static boolean bi_search(List<Integer> lst,int num,List<Integer> tlst){//折半查找。然后在tlst中返回lst中所有等于num值的索引号
-      int mid=-1;
-      int low=0;
-      int high=lst.size()-1;
-      while(low<=high){
-        mid=(low+high)/2;
-        if(lst.get(mid) ==num) break;
-        else if(lst.get(mid) >num){
-          high=mid-1;
-        }
-        else low=mid+1;
-      }
-      if(low>high) return false;//没找到
-      tlst.add(mid);//mid索引处是要找的，然后在mid索引的前后再找有没有
-      for(int i=mid-1;i>0;--i){
-        if(lst.get(i)==num) tlst.add(i);
-        else break;
-      }
-      for(int i=mid+1;i<lst.size();++i){
-        if(lst.get(i)==num) tlst.add(i);
-        else break;
-      }
-      return true;
     }
     
     /*public static void store_room_stg(List<List<Integer>> roomCandidates){//以IndoorSTG的方式存储房间 

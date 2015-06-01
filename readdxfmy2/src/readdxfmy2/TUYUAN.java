@@ -70,6 +70,25 @@ class Line extends tuys{
   Point qd,zd;
   double zb[]=new double[4];
   //String name="Line";
+  
+  public int comparetoline(Object o) {
+    double midx=(qd.x+zd.x)/2;
+    double midy=(qd.y+zd.y)/2;
+    double tmidx=(((Line)o).qd.x+((Line)o).zd.x)/2;
+    double tmidy=(((Line)o).qd.y+((Line)o).zd.y)/2;
+    if(Math.abs(midy-tmidy)<10)
+    {
+      if(midx<tmidx) return -1;
+      if(midx>tmidx) return 1;
+      else return 0;
+    }
+    else
+    {
+      if(midy<tmidy) return -1;
+      else return 1;
+    }
+  }
+  
   public Line(Point a, Point b){
     if(a!=null && b!=null){
      qd=new Point(a);
