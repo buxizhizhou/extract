@@ -15,6 +15,7 @@ import java.lang.Math;
 abstract class tuys implements Serializable{
   private static final long serialVersionUID=123L;
   String name;
+  double PCL=0.5;//10;
 }
 
 class Point extends tuys{
@@ -76,7 +77,7 @@ class Line extends tuys{
     double midy=(qd.y+zd.y)/2;
     double tmidx=(((Line)o).qd.x+((Line)o).zd.x)/2;
     double tmidy=(((Line)o).qd.y+((Line)o).zd.y)/2;
-    if(Math.abs(midy-tmidy)<10)
+    if(Math.abs(midy-tmidy)<this.PCL)
     {
       if(midx<tmidx) return -1;
       if(midx>tmidx) return 1;
@@ -121,7 +122,7 @@ class Line extends tuys{
   }
   public boolean is_vertical(){//是否是竖直的
     double pc=Math.abs(qd.x-zd.x);
-    if(pc<10) 
+    if(pc<this.PCL) 
     {
         //System.out.println("is vertical");
         return true;
@@ -130,7 +131,7 @@ class Line extends tuys{
   }
   public boolean is_horizontal(){//是否为水平线
     double pc=Math.abs(qd.y-zd.y);
-    if(pc<10)
+    if(pc<this.PCL)
     {
         //System.out.println("is horizontal");
         return true;
@@ -146,7 +147,7 @@ class Line extends tuys{
     return qd.y-k*qd.x;
   }
   public double distoln(Line ln){//计算与另一平行线段间的距离
-    if(Math.abs(qd.x-zd.x)<5){//竖直线
+    if(Math.abs(qd.x-zd.x)<this.PCL){//竖直线
       double miny1=qd.y<zd.y?qd.y:zd.y;
       double maxy1=qd.y>zd.y?qd.y:zd.y;
       double miny2=ln.qd.y<ln.zd.y?ln.qd.y:ln.zd.y;

@@ -37,6 +37,9 @@ public class Readdxfmy2 {
     public static double jsjl=380;//300;//平行线间的可近似距离，一般为墙宽度
     public static double szxpc=10;//竖直线的偏差
     public static double stair_jsjl=550;//当楼梯仅由一组平行线构成，而且它们之间没其他楼梯图层的线相连。它们之间的距离设为此值
+    public static double adj_dist=10;
+    public static double xl_pc=1;
+    public static double xj_pc=10;
     
     //final public static String fileName="C:\\Users\\User\\Documents\\NetBeansProjects\\readdxflunwen\\一层平面图_t3.dxf";
     //final public static String fileName="C:\\Users\\User\\Documents\\NetBeansProjects\\readdxflunwen\\一层平面图窗户有线.dxf";
@@ -1286,7 +1289,7 @@ public class Readdxfmy2 {
             j--;
             continue;
           }
-          if(lnadjln(ln1,ln2,10)!=0 && paralell(ln1,ln2)){//注意这里lnadjln的阈值设定，双弧门两个门槛的合并，阈值不要把比较近的两个门也给合并了
+          if(lnadjln(ln1,ln2,adj_dist)!=0 && paralell(ln1,ln2)){//注意这里lnadjln的阈值设定，双弧门两个门槛的合并，阈值不要把比较近的两个门也给合并了
             //System.out.println(" 1qdx:"+ln1.qd.x+" 1qdy:"+ln1.qd.y);
             //System.out.println(" 1zdx:"+ln1.zd.x+" 1zdy:"+ln1.zd.y);
             //System.out.println(" 2qdx:"+ln2.qd.x+" 2qdy:"+ln2.qd.y);
@@ -1634,7 +1637,7 @@ public class Readdxfmy2 {
         for(int j=0;j<txllst.size();++j)//遍历同斜率集合中的每个near-line小集合即簇
         {
           List<Line> culst=txllst.get(j);//簇
-          if(culst.size()<2)  continue;//簇大小为0的会导致sumlength为0；簇大小为1则一般可去掉
+          if(culst.size()<1)  continue;//簇大小为0的会导致sumlength为0；簇大小为1则一般可去掉                           //note：这里参数由2改为1  过滤簇
           List<Double> cumbr=new ArrayList();//对于每一个簇都构造一个外包矩形
           double sumlength=0.0;//culst簇中的所有线长度之和
           double jqsumx=0.0;//竖直线的加权的x和值
@@ -1666,7 +1669,7 @@ public class Readdxfmy2 {
               jqsumy=jqsumy+lnlen*templn.qd.y;
             }
           }
-          if((maxx-minx<0.1) || (maxy-miny<0.1)) continue;//这个是为了避免像窗户块的左右短边各与墙的短线构成一个大小为2的簇
+       //   if((maxx-minx<0.1) || (maxy-miny<0.1)) continue;//这个是为了避免像窗户块的左右短边各与墙的短线构成一个大小为2的簇
           //外包矩形
           cumbr.add(maxx);
           cumbr.add(maxy);
@@ -1696,105 +1699,35 @@ public class Readdxfmy2 {
         lns.add(txllns);
       }
       
-      //构造外包平行四边形 
-      /*List<List<List<Double>>> ssdjbj=new ArrayList();//四个边界。左、右、下、上   同一斜率，同一近似距离内，四个边界
-      for(int i=0;i<jllns.size();++i){//遍历斜率
-        if(i!=0 && i!=1) continue;//如果不是垂直或水平的，则暂不处理
-        List<List<Line>> templst=jllns.get(i);
-        List<List<Double>> templst2=new ArrayList();
-        for(int j=0;j<templst.size();++j){//遍历距离划分的小集合
-          List<Line> tlst=templst.get(j);
-          List<Double> tlst2=new ArrayList();
-          double minx=100000000;
-          double maxx=-100000000;
-          double miny=100000000;
-          double maxy=-100000000;
-          for(int k=0;k<tlst.size();++k){//遍历小集合内的线
-            Line templn=tlst.get(k);
-            minx=minx<templn.qd.x?minx:templn.qd.x;
-            minx=minx<templn.zd.x?minx:templn.zd.x;
-            maxx=maxx>templn.qd.x?maxx:templn.qd.x;
-            maxx=maxx>templn.zd.x?maxx:templn.zd.x;
-            miny=miny<templn.qd.y?miny:templn.qd.y;
-            miny=miny<templn.zd.y?miny:templn.zd.y;
-            maxy=maxy>templn.qd.y?maxy:templn.qd.y;
-            maxy=maxy>templn.zd.y?maxy:templn.zd.y;
-          }
-          if((maxx-minx<0.1) || (maxy-miny<0.1)) continue;
-          tlst2.add(minx);
-          tlst2.add(miny);
-          tlst2.add(maxx);
-          tlst2.add(miny);
-          tlst2.add(maxx);
-          tlst2.add(maxy);
-          tlst2.add(minx);
-          tlst2.add(maxy);
-          tlst2.add(minx);
-          tlst2.add(miny);
-          templst2.add(tlst2);
-        }
-        ssdjbj.add(templst2);
-      }
-      
-      //打印平行四边形
-      File file=new File("pxsbx.txt"); 
-      FileWriter fw=null;
+       //打印水平和竖直线的平行四边形
+      File file2=new File("pxsbx.txt"); 
+      FileWriter fw2=null;
       if(moshi==CHANGXIAN){
-        fw=new FileWriter(file);
+        fw2=new FileWriter(file2);
       }
       else
-        fw=new FileWriter(file,true);//构造函数中的第二个参数true表示以追加形式写文件
-      BufferedWriter bfw=new BufferedWriter(fw); 
-      for(int i=0;i<ssdjbj.size();++i){
-        List<List<Double>> templst=ssdjbj.get(i);
+        fw2=new FileWriter(file2,true);//构造函数中的第二个参数true表示以追加形式写文件
+      BufferedWriter bfw2=new BufferedWriter(fw2); 
+      for(int i=0;i<ssdjbj2.size();++i){
+        List<List<Double>> templst=ssdjbj2.get(i);
         //System.out.println("size:"+templst.size());
         for(int j=0;j<templst.size();++j){//每个小类
           //bfw.write(i+" "+j);
-          bfw.newLine();
-          bfw.write("PLINE");
+          bfw2.newLine();
+          bfw2.write("PLINE");
           List<Double> tlst=templst.get(j);
           for(int k=0;k<tlst.size();k=k+2){
-            bfw.write(" "+tlst.get(k)+","+tlst.get(k+1));
+            bfw2.write(" "+tlst.get(k)+","+tlst.get(k+1));
           }
-          bfw.write(" ");
-          bfw.newLine();
+          bfw2.write(" ");
+          bfw2.newLine();
         }
-        bfw.newLine();
-        bfw.newLine();
-        bfw.flush();//注意这个
+        bfw2.newLine();
+        bfw2.newLine();
+        bfw2.flush();//注意这个
       }
-      bfw.close();
-      
-      //由外包平行四边形构造线
-      
-        for(int i=0;i<ssdjbj.size();++i){
-          List<List<Double>> templst=ssdjbj.get(i);//同一斜率内，所有以近似距离划分的小类
-          List<Line> templst2=new ArrayList();
-          for(int j=0;j<templst.size();++j){
-            List<Double> tlst=templst.get(j);
-            double minx=tlst.get(0);
-            double miny=tlst.get(1);
-            double maxx=tlst.get(2);
-            double maxy=tlst.get(5);
-            double qx=0,qy=0,zx=0,zy=0;
-            if(i==0){//根据ssdjbj的定义知i为0时是竖直线竖直线的外包矩形简化线，是由x中值分别和maxy、miny构成的两点构成的线，如下
-              qx=(maxx+minx)/2;
-              qy=miny;
-              zx=(maxx+minx)/2;
-              zy=maxy;
-            }
-            else{//i为1时为水平线
-              qx=minx;
-              qy=(maxy+miny)/2;
-              zx=maxx;
-              zy=(maxy+miny)/2;
-            }
-            Line ln=new Line(qx,qy,zx,zy);
-            //if(ln.length()>jsjl) 
-                templst2.add(ln);
-          }
-          lns.add(templst2);
-        }*/
+      bfw2.close();
+
         
       //针对斜线，进行上述类似处理
       //构造外包平行四边形
@@ -1827,7 +1760,7 @@ public class Readdxfmy2 {
             maxy=maxy>templn.qd.y?maxy:templn.qd.y;
             maxy=maxy>templn.zd.y?maxy:templn.zd.y;
           }
-          if((maxx-minx<0.1) || (maxy-miny<0.1)) continue;
+        //  if((maxx-minx<0.1) || (maxy-miny<0.1)) continue;
           double smaxx=-1000000000;
           double sminx=1000000000;
           double xmaxx=-1000000000;
@@ -1858,27 +1791,27 @@ public class Readdxfmy2 {
         }
         xxdjbj.add(templst2);
       }
-      //打印平行四边形
-      File file2=new File("pxsbx.txt"); 
-      FileWriter fw2=new FileWriter(file2,true);//构造函数中的第二个参数true表示以追加形式写文件
-      BufferedWriter bfw2=new BufferedWriter(fw2); 
+      //打印斜线的平行四边形
+      File file4=new File("pxsbx.txt"); 
+      FileWriter fw4=new FileWriter(file4,true);//构造函数中的第二个参数true表示以追加形式写文件
+      BufferedWriter bfw4=new BufferedWriter(fw4); 
       for(int i=0;i<xxdjbj.size();++i){
         List<List<Double>> templst=xxdjbj.get(i);
         //System.out.println("size:"+templst.size());
         for(int j=0;j<templst.size();++j){//每个小类
           //bfw.write(i+" "+j);
-          bfw2.newLine();
-          bfw2.write("PLINE");
+          bfw4.newLine();
+          bfw4.write("PLINE");
           List<Double> tlst=templst.get(j);
           for(int k=0;k<tlst.size();k=k+2){
-            bfw2.write(" "+tlst.get(k)+","+tlst.get(k+1));
+            bfw4.write(" "+tlst.get(k)+","+tlst.get(k+1));
           }
-          bfw2.write(" ");
-          bfw2.newLine();
+          bfw4.write(" ");
+          bfw4.newLine();
         }
-        bfw2.newLine();
-        bfw2.newLine();
-        bfw2.flush();//注意这个
+        bfw4.newLine();
+        bfw4.newLine();
+        bfw4.flush();//注意这个
       }
       bfw2.close();
       //由外包平行四边形构造线。即简化步骤
@@ -2106,7 +2039,7 @@ public class Readdxfmy2 {
     public static int xl_find(List<Double> djsy,double xl){//在djsy集合中找斜率xl，找到返回索引号；否则返回集合大小。
       int i=2;
       for(;i<djsy.size();++i){//0号和1号是竖直和水平线，0号的斜率是随便设的。
-        if(Math.abs(djsy.get(i)-xl)<1) return i;
+        if(Math.abs(djsy.get(i)-xl)<xl_pc) return i;
       }
       return i;
     }
@@ -2154,7 +2087,7 @@ public class Readdxfmy2 {
       else if((ln1.is_vertical()==false)&&(ln2.is_vertical()==false)){
         double xl1=ln1.getxl();
         double xl2=ln2.getxl();
-        if(Math.abs(xl1-xl2)<1) return true;
+        if(Math.abs(xl1-xl2)<xl_pc) return true;
         else return false;
       }
       else return false;
@@ -3434,7 +3367,7 @@ public class Readdxfmy2 {
           {//对非平行线，看是否相交
             Point jd=inter_point(ln1,ln2);//两线交点
             //if(jd==null) continue;平行则无交点
-            if(is_online(jd,ln1,jsjl/10) && is_online(jd,ln2,jsjl/10))//交点在两个线上，即两线相交。这里近似量不能选择jsjl，否则可能将两个距离为jsjl的楼梯识别为一个了。
+            if(is_online(jd,ln1,xj_pc) && is_online(jd,ln2,xj_pc))//交点在两个线上，即两线相交。这里近似量不能选择jsjl，否则可能将两个距离为jsjl的楼梯识别为一个了。
             {
               ncu.add(ln2);
               /*stairlns.remove(j);  这里不能remove，因为remove掉了，ln2就不能去找相交线了
@@ -3473,7 +3406,7 @@ public class Readdxfmy2 {
               {//对非平行线，看是否相交
                 Point jd=inter_point(ln3,ln4);
                 if(jd==null) continue;
-                if(is_online(jd,ln3,jsjl/10) && is_online(jd,ln4,jsjl/10))//两线相交
+                if(is_online(jd,ln3,xj_pc) && is_online(jd,ln4,xj_pc))//两线相交
                 {
                   flag=true;
                   break;
@@ -3811,7 +3744,7 @@ public class Readdxfmy2 {
        fangjtc.add("WALL");
        strtc.add("STAIR");*/
        
-       fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\一层平面图.dxf";
+       /*fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\一层平面图.dxf";
        //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\ts楼梯.dxf";
        ypxl=550;//300;近似数
        jsjl=240+50;//300;//平行线间的可近似距离，一般为墙宽度
@@ -3820,7 +3753,7 @@ public class Readdxfmy2 {
        fangjtc.add("WINDOW");
        fangjtc.add("COLUMN");
        fangjtc.add("WALL");
-       strtc.add("STAIR");/**/
+       strtc.add("STAIR");*/
        
       /* //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\电三-三层.dxf";
        //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\电三右部.dxf";
@@ -3835,6 +3768,62 @@ public class Readdxfmy2 {
        fangjtc.add("COLUMN");
        fangjtc.add("WALL");
        strtc.add("STAIR");*/
+       
+       /*fileName="E:\\cad-xx\\hospital-fengceng\\ground-ycl5.dxf";
+       ypxl=550;//300;近似数
+       jsjl=340+50;//300;//平行线间的可近似距离，一般为墙宽度
+       szxpc=5;//竖直线的偏差
+       mentc.add("mydoor");
+       fangjtc.add("mywall");
+       //fangjtc.add("wall");
+       //fangjtc.add("0");
+       //fangjtc.add("stairs");
+       //fangjtc.add("WALL");
+       //strtc.add("STAIR");*/
+       
+       /*fileName="E:\\cad-xx\\hospital-fengceng\\second-ycl3.dxf";
+       ypxl=550;//300;近似数
+       jsjl=340+50;//300;//平行线间的可近似距离，一般为墙宽度
+       szxpc=5;//竖直线的偏差
+       mentc.add("mydoor");
+       fangjtc.add("mywall");
+       //fangjtc.add("wall");
+       //fangjtc.add("0");
+       //fangjtc.add("stairs");
+       //fangjtc.add("WALL");
+       //strtc.add("STAIR");*/
+       
+       /*fileName="E:\\cad-xx\\hospital-fengceng\\third-ycl3.dxf";
+       ypxl=550;//300;近似数
+       jsjl=340+50;//300;//平行线间的可近似距离，一般为墙宽度
+       szxpc=5;//竖直线的偏差
+       mentc.add("mydoor");
+       fangjtc.add("mywall");
+       //fangjtc.add("wall");
+       //fangjtc.add("0");
+       //fangjtc.add("stairs");
+       //fangjtc.add("WALL");
+       //strtc.add("STAIR");*/
+       
+       /*fileName="E:\\cad-xx\\bassel-mall\\中2-1.dxf";
+       ypxl=0.3;//近似数
+       jsjl=0.3;//平行线间的可近似距离，一般为墙宽度
+       szxpc=0.3;//竖直线的偏差
+       adj_dist=1;//lnadjln的第三个参数
+       xl_pc=0.5;//斜率之差绝对值小于这个值时，认为斜率相同
+       xj_pc=1;//交点是否在线上的偏差，is_online的参数
+       mentc.add("mydoor");
+       fangjtc.add("mywall");*/
+       
+       fileName="E:\\cad-xx\\bassel-mall\\中5-2.dxf";
+       ypxl=0.3;//近似数
+       jsjl=0.3;//平行线间的可近似距离，一般为墙宽度
+       szxpc=0.3;//竖直线的偏差
+       adj_dist=1;//lnadjln的第三个参数
+       xl_pc=0.5;//斜率之差绝对值小于这个值时，认为斜率相同
+       xj_pc=1;//交点是否在线上的偏差，is_online的参数
+       mentc.add("mydoor");
+       fangjtc.add("mywall");
        
        //stair_jsjl=jsjl;//暂时设为这个值
        
@@ -3932,3 +3921,103 @@ public class Readdxfmy2 {
     }//main
     
 }
+
+      //构造外包平行四边形 
+      /*List<List<List<Double>>> ssdjbj=new ArrayList();//四个边界。左、右、下、上   同一斜率，同一近似距离内，四个边界
+      for(int i=0;i<jllns.size();++i){//遍历斜率
+        if(i!=0 && i!=1) continue;//如果不是垂直或水平的，则暂不处理
+        List<List<Line>> templst=jllns.get(i);
+        List<List<Double>> templst2=new ArrayList();
+        for(int j=0;j<templst.size();++j){//遍历距离划分的小集合
+          List<Line> tlst=templst.get(j);
+          List<Double> tlst2=new ArrayList();
+          double minx=100000000;
+          double maxx=-100000000;
+          double miny=100000000;
+          double maxy=-100000000;
+          for(int k=0;k<tlst.size();++k){//遍历小集合内的线
+            Line templn=tlst.get(k);
+            minx=minx<templn.qd.x?minx:templn.qd.x;
+            minx=minx<templn.zd.x?minx:templn.zd.x;
+            maxx=maxx>templn.qd.x?maxx:templn.qd.x;
+            maxx=maxx>templn.zd.x?maxx:templn.zd.x;
+            miny=miny<templn.qd.y?miny:templn.qd.y;
+            miny=miny<templn.zd.y?miny:templn.zd.y;
+            maxy=maxy>templn.qd.y?maxy:templn.qd.y;
+            maxy=maxy>templn.zd.y?maxy:templn.zd.y;
+          }
+          if((maxx-minx<0.1) || (maxy-miny<0.1)) continue;
+          tlst2.add(minx);
+          tlst2.add(miny);
+          tlst2.add(maxx);
+          tlst2.add(miny);
+          tlst2.add(maxx);
+          tlst2.add(maxy);
+          tlst2.add(minx);
+          tlst2.add(maxy);
+          tlst2.add(minx);
+          tlst2.add(miny);
+          templst2.add(tlst2);
+        }
+        ssdjbj.add(templst2);
+      }
+      
+      //打印平行四边形
+      File file=new File("pxsbx.txt"); 
+      FileWriter fw=null;
+      if(moshi==CHANGXIAN){
+        fw=new FileWriter(file);
+      }
+      else
+        fw=new FileWriter(file,true);//构造函数中的第二个参数true表示以追加形式写文件
+      BufferedWriter bfw=new BufferedWriter(fw); 
+      for(int i=0;i<ssdjbj.size();++i){
+        List<List<Double>> templst=ssdjbj.get(i);
+        //System.out.println("size:"+templst.size());
+        for(int j=0;j<templst.size();++j){//每个小类
+          //bfw.write(i+" "+j);
+          bfw.newLine();
+          bfw.write("PLINE");
+          List<Double> tlst=templst.get(j);
+          for(int k=0;k<tlst.size();k=k+2){
+            bfw.write(" "+tlst.get(k)+","+tlst.get(k+1));
+          }
+          bfw.write(" ");
+          bfw.newLine();
+        }
+        bfw.newLine();
+        bfw.newLine();
+        bfw.flush();//注意这个
+      }
+      bfw.close();
+      
+      //由外包平行四边形构造线
+      
+        for(int i=0;i<ssdjbj.size();++i){
+          List<List<Double>> templst=ssdjbj.get(i);//同一斜率内，所有以近似距离划分的小类
+          List<Line> templst2=new ArrayList();
+          for(int j=0;j<templst.size();++j){
+            List<Double> tlst=templst.get(j);
+            double minx=tlst.get(0);
+            double miny=tlst.get(1);
+            double maxx=tlst.get(2);
+            double maxy=tlst.get(5);
+            double qx=0,qy=0,zx=0,zy=0;
+            if(i==0){//根据ssdjbj的定义知i为0时是竖直线竖直线的外包矩形简化线，是由x中值分别和maxy、miny构成的两点构成的线，如下
+              qx=(maxx+minx)/2;
+              qy=miny;
+              zx=(maxx+minx)/2;
+              zy=maxy;
+            }
+            else{//i为1时为水平线
+              qx=minx;
+              qy=(maxy+miny)/2;
+              zx=maxx;
+              zy=(maxy+miny)/2;
+            }
+            Line ln=new Line(qx,qy,zx,zy);
+            //if(ln.length()>jsjl) 
+                templst2.add(ln);
+          }
+          lns.add(templst2);
+        }*/
