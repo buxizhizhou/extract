@@ -129,11 +129,15 @@ public class Readdxfmy2 {
     
     public static String resflname="command-roomzb.txt";//结果文件，保存每个房间的编号，点坐标
     
+    public static boolean DEBUG_STORE=false;//标记为假，则不存储相关数据到数据库；为真，则进行存储。
+    
     /*public static void connect_database(JGeometry geo){//调试用的，替换前一个函数，不读写数据库会快些。
      return ;   
     }*/
     
     public static void connect_database(JGeometry geo) throws InstantiationException, IllegalAccessException, SQLException{
+           if(DEBUG_STORE==false) return ;//如果标记为假，则不进行存储。
+           
            //建立数据库连接   
            String Driver="oracle.jdbc.driver.OracleDriver";    //连接数据库的方法    
            String URL="jdbc:oracle:thin:@127.0.0.1:1521:cad";    //cad为数据库的SID    
@@ -163,6 +167,8 @@ public class Readdxfmy2 {
     }
     
     public static void store_door(String tbName,JGeometry geo,int n) throws InstantiationException, IllegalAccessException, SQLException{
+           if(DEBUG_STORE==false) return ;//如果标记为假，则不进行存储。
+        
            //建立数据库连接   
            String Driver="oracle.jdbc.driver.OracleDriver";    //连接数据库的方法    
            String URL="jdbc:oracle:thin:@127.0.0.1:1521:cad";    //cad为数据库的SID    
@@ -189,6 +195,8 @@ public class Readdxfmy2 {
     }
     
     public static void store(String tbName,JGeometry geo,int n) throws InstantiationException, IllegalAccessException, SQLException{//把编号为n的对象geo存入数据库表中
+           if(DEBUG_STORE==false) return ;//如果标记为假，则不进行存储。
+        
            //建立数据库连接   
            String Driver="oracle.jdbc.driver.OracleDriver";    //连接数据库的方法    
            String URL="jdbc:oracle:thin:@127.0.0.1:1521:cad";    //cad为数据库的SID    
@@ -2517,7 +2525,7 @@ public class Readdxfmy2 {
        }//for-j
        
        JGeometry geo=JGeometry.createLinearPolygon(fjzb, 2, zbsrid);
-//      store("room",geo,i+1);
+      store("room",geo,i+1);
        
        //System.out.println(str);
        bfw2.newLine();
@@ -2694,7 +2702,7 @@ public class Readdxfmy2 {
         zb[1]=(int)(ln.qd.y+ln.zd.y)/2;
         //zb[3]=0;
         JGeometry geo=JGeometry.createPoint(zb, 2, zbsrid);
-//        store("door",geo,i);
+        store("door",geo,i);
       }
     }
     
@@ -3904,6 +3912,7 @@ public class Readdxfmy2 {
        //walltc.add("WALL");
        //walltc.add("COLUMN");
        
+       DEBUG_STORE=false;
        readBlocks(bfr);
        readEntities(bfr);
        //createindex(); //创建索引。  感觉还是可以放在SQL文件里，因为创建数据库表还是要执行SQL文件的。在这里执行，如果索引不存在，drop index句就会异常。
