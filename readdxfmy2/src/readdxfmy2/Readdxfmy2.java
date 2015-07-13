@@ -129,10 +129,10 @@ public class Readdxfmy2 {
     
     public static String resflname="command-roomzb.txt";//结果文件，保存每个房间的编号，点坐标
     
-    public static void connect_database(JGeometry geo){//调试用的，替换前一个函数，不读写数据库会快些。
+    /*public static void connect_database(JGeometry geo){//调试用的，替换前一个函数，不读写数据库会快些。
      return ;   
-    }
-    /*
+    }*/
+    
     public static void connect_database(JGeometry geo) throws InstantiationException, IllegalAccessException, SQLException{
            //建立数据库连接   
            String Driver="oracle.jdbc.driver.OracleDriver";    //连接数据库的方法    
@@ -160,7 +160,7 @@ public class Readdxfmy2 {
                } catch (ClassNotFoundException ex) {
                    Logger.getLogger(Readdxfmy2.class.getName()).log(Level.SEVERE, null, ex);
                }
-    }*/
+    }
     
     public static void store_door(String tbName,JGeometry geo,int n) throws InstantiationException, IllegalAccessException, SQLException{
            //建立数据库连接   
@@ -3755,7 +3755,7 @@ public class Readdxfmy2 {
        fangjtc.add("WALL");
        strtc.add("STAIR");*/
        
-      /* //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\电三-三层.dxf";
+       //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\电三-三层.dxf";
        //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\电三右部.dxf";
        fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\电三右部2.dxf";
        //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\ts电三一个房间.dxf";
@@ -3767,7 +3767,7 @@ public class Readdxfmy2 {
        //fangjtc.add("0");
        fangjtc.add("COLUMN");
        fangjtc.add("WALL");
-       strtc.add("STAIR");*/
+       strtc.add("STAIR");/**/
        
        /*fileName="E:\\cad-xx\\hospital-fengceng\\ground-ycl5.dxf";
        ypxl=550;//300;近似数
@@ -3815,7 +3815,7 @@ public class Readdxfmy2 {
        mentc.add("mydoor");
        fangjtc.add("mywall");*/
        
-       fileName="E:\\cad-xx\\bassel-mall\\中5-2.dxf";
+       /*fileName="E:\\cad-xx\\bassel-mall\\中5-2.dxf";
        ypxl=0.3;//近似数
        jsjl=0.3;//平行线间的可近似距离，一般为墙宽度
        szxpc=0.3;//竖直线的偏差
@@ -3823,7 +3823,7 @@ public class Readdxfmy2 {
        xl_pc=0.5;//斜率之差绝对值小于这个值时，认为斜率相同
        xj_pc=1;//交点是否在线上的偏差，is_online的参数
        mentc.add("mydoor");
-       fangjtc.add("mywall");
+       fangjtc.add("mywall");*/
        
        //stair_jsjl=jsjl;//暂时设为这个值
        
@@ -3922,6 +3922,7 @@ public class Readdxfmy2 {
     
 }
 
+      //废弃代码
       //构造外包平行四边形 
       /*List<List<List<Double>>> ssdjbj=new ArrayList();//四个边界。左、右、下、上   同一斜率，同一近似距离内，四个边界
       for(int i=0;i<jllns.size();++i){//遍历斜率
