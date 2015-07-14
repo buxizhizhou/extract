@@ -1355,7 +1355,7 @@ public class Readdxfmy2 {
       }
     }
     
-    public static void store_predxf(Double pylen) throws InstantiationException, IllegalAccessException, SQLException{
+    /*public static void store_predxf(Double pylen) throws InstantiationException, IllegalAccessException, SQLException{
       for(int i=0;i<roomlns.size();++i){
         Line ln=roomlns.get(i);
         double tempzb[]=new double[4];//尼玛，数组名后的[]里不能有数组长度
@@ -1366,7 +1366,7 @@ public class Readdxfmy2 {
         JGeometry geo=JGeometry.createLinearLineString(tempzb,2,zbsrid);
         store("predxf",geo,i);
       }
-    }
+    }*/
     
     public static void my_preprocess(List<Line> supset,List<List<Line>> lns,int moshi) throws IOException{
       /*List<List<List<Line>>> djlns=new ArrayList();//将线段集合按斜率等价划分后的等价类集合，其中每个相同的斜率内再按距离聚类
@@ -3912,7 +3912,7 @@ public class Readdxfmy2 {
        //walltc.add("WALL");
        //walltc.add("COLUMN");
        
-       DEBUG_STORE=false;
+       DEBUG_STORE=true;
        readBlocks(bfr);
        readEntities(bfr);
        //createindex(); //创建索引。  感觉还是可以放在SQL文件里，因为创建数据库表还是要执行SQL文件的。在这里执行，如果索引不存在，drop index句就会异常。
