@@ -15,7 +15,7 @@ import java.lang.Math;
 abstract class tuys implements Serializable{
   private static final long serialVersionUID=123L;
   String name;
-  double PCL=0.5;//10;
+  double PCL=20;//0.5;//10;//判断两个x或两个y值是否近似相等
 }
 
 class Point extends tuys{

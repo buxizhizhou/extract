@@ -89,6 +89,11 @@ public class Readdxfmy2 {
     public static double tmaxx=-100000000;
     public static double tmaxy=-100000000;
     
+    public static double rmlnsminx=100000000;//房间图层的四个边界
+    public static double rmlnsminy=100000000;
+    public static double rmlnsmaxx=-100000000;
+    public static double rmlnsmaxy=-100000000;
+    
     public static int num=0;
     public static int cnt=0;
     final public static int zbsrid=32774;
@@ -129,7 +134,7 @@ public class Readdxfmy2 {
     
     public static String resflname="command-roomzb.txt";//结果文件，保存每个房间的编号，点坐标
     
-    public static boolean DEBUG_STORE=false;//标记为假，则不存储相关数据到数据库；为真，则进行存储。
+    public static boolean DEBUG_STORE=false;//标记为假，则不存储相关数据到数据库；为真，则进行存储。  在main函数里修改
     
     /*public static void connect_database(JGeometry geo){//调试用的，替换前一个函数，不读写数据库会快些。
      return ;   
@@ -1444,8 +1449,8 @@ public class Readdxfmy2 {
       
       List<List<Line>> djlns=new ArrayList();//将线段集合按斜率等价划分后的等价类集合
       List<Double> djsy=new ArrayList();//djlns等价类集合中每个等价类的斜率。索引上下对应。索引0位置存的是竖直线集合，斜率存10000
-      djsy.add(new Double(10000));
-      djsy.add(new Double(0));
+      djsy.add(new Double(10000));//竖直线的斜率存10000
+      djsy.add(new Double(0));//水平线的斜率存0
       List<Line> linglst=new ArrayList();
       List<Line> yilst=new ArrayList();
       djlns.add(linglst);//djlns索引0处是竖直线等价类
@@ -1778,7 +1783,7 @@ public class Readdxfmy2 {
             Line templn=tlst.get(k);
             double xl=templn.getxl();
             double xb=templn.getb();
-            double xshang=(maxy-xb+0.0)/(xl+0.0);
+            double xshang=(maxy-xb+0.0)/(xl+0.0);//
             double xxia=(miny-xb+0.0)/(xl+0.0);
             smaxx=xshang>smaxx?xshang:smaxx;
             sminx=xshang<sminx?xshang:sminx;
@@ -2141,12 +2146,33 @@ public class Readdxfmy2 {
       bfw.close();
     }
     
+    public static void Get_MaxMinValues_InRoomLines(List<Line> lns)
+    {
+      //在房间图层中的所有线的最大最小xy值
+      for(int i=0;i<lns.size();++i)
+      {
+          Line ln=lns.get(i);
+          double minx=ln.qd.x<ln.zd.x?ln.qd.x:ln.zd.x;
+          double maxx=ln.qd.x>ln.zd.x?ln.qd.x:ln.zd.x;
+          double miny=ln.qd.y<ln.zd.y?ln.qd.y:ln.zd.y;
+          double maxy=ln.qd.y>ln.zd.y?ln.qd.y:ln.zd.y;
+          rmlnsminx=rmlnsminx<minx?rmlnsminx:minx;
+          rmlnsmaxx=rmlnsmaxx>maxx?rmlnsmaxx:maxx;
+          rmlnsminy=rmlnsminy<miny?rmlnsminy:miny;
+          rmlnsmaxy=rmlnsmaxy>maxy?rmlnsmaxy:maxy;
+      }
+    }
+    
     public static void Extract_Rooms() throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException, SQLException{
+      System.out.println("-----In func Extract_Rooms()-----");
       System.out.println("墙线个数:"+roomlns.size());
       List<Line> dxlns=new ArrayList();//短线集合
 //      rm_pre_process(dxlns);  //如果把这里注释掉，不把短线拿出来单独处理，则可能导致简化后的墙线偏离墙的轮廓一点
       
       roomlns.addAll(doorsteps);//合并提取房间所需要的线段，这里还没有考虑房间的弧线段   假设门槛不进行预处理的，方便确定门槛在roomlns中的索引
+      
+      Get_MaxMinValues_InRoomLines(roomlns);
+      
       boolean flag=false;//标识房间图层是否含门图层的，如果有，需要把门图层的线在后面加入到roomlns中
       for(int i=0;i<mentc.size();++i){
         if(fangjtc.contains(mentc.get(i))){
@@ -2474,7 +2500,7 @@ public class Readdxfmy2 {
      save_topo(door_fj);//测试后是对的。2015/4/12  格式：门号 房间号 房间号 ...
      save_indoor_Space(drlns,zhlns,door_fj);//导入IndoorDB的数据格式
      
-     save_xx_rooms(roomCandidates,roombz,zhlns);//按和晓翔约定的方式存储房间坐标信息
+     //save_xx_rooms(roomCandidates,roombz,zhlns);//按和晓翔约定的方式存储房间坐标信息
      
      File file=new File(resflname); 
      FileWriter fw=new FileWriter(file);
@@ -2525,7 +2551,7 @@ public class Readdxfmy2 {
        }//for-j
        
        JGeometry geo=JGeometry.createLinearPolygon(fjzb, 2, zbsrid);
-      store("room",geo,i+1);
+       store("room",geo,i+1);
        
        //System.out.println(str);
        bfw2.newLine();
@@ -3763,9 +3789,9 @@ public class Readdxfmy2 {
        fangjtc.add("WALL");
        strtc.add("STAIR");*/
        
-       //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\电三-三层.dxf";
+       //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\extract\\\\readdxfmy2\\\\cad-data\\\\电三-三层.dxf";//test2.dxf";
        //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\电三右部.dxf";
-       fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\电三右部2.dxf";
+       /*fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\电三右部2.dxf";
        //fileName="C:\\\\Users\\\\hello\\\\Documents\\\\NetBeansProjects\\\\readdxflunwen\\\\ts电三一个房间.dxf";
        ypxl=550;//300;近似数
        jsjl=340+50;//300;//平行线间的可近似距离，一般为墙宽度
@@ -3775,7 +3801,95 @@ public class Readdxfmy2 {
        //fangjtc.add("0");
        fangjtc.add("COLUMN");
        fangjtc.add("WALL");
+       strtc.add("STAIR");*/
+       
+       fileName="C:\\Users\\hello\\Documents\\NetBeansProjects\\extract\\readdxfmy2\\cad-data\\电三1c.dxf";
+       ypxl=550;//300;近似数
+       jsjl=340+50;//300;//平行线间的可近似距离，一般为墙宽度
+       szxpc=5;//竖直线的偏差
+       mentc.add("WINDOW");
+       fangjtc.add("WINDOW");
+       //fangjtc.add("0");
+       fangjtc.add("COLUMN");
+       fangjtc.add("WALL");
        strtc.add("STAIR");/**/
+       
+       /*fileName="C:\\Users\\hello\\Documents\\NetBeansProjects\\extract\\readdxfmy2\\cad-data\\电三2c.dxf";
+       ypxl=550;//300;近似数
+       jsjl=340+50;//300;//平行线间的可近似距离，一般为墙宽度
+       szxpc=5;//竖直线的偏差
+       mentc.add("WINDOW");
+       fangjtc.add("WINDOW");
+       //fangjtc.add("0");
+       fangjtc.add("COLUMN");
+       fangjtc.add("WALL");
+       strtc.add("STAIR");*/
+       
+       /*fileName="C:\\Users\\hello\\Documents\\NetBeansProjects\\extract\\readdxfmy2\\cad-data\\电三3c.dxf";
+       ypxl=550;//300;近似数
+       jsjl=340+50;//300;//平行线间的可近似距离，一般为墙宽度
+       szxpc=5;//竖直线的偏差
+       mentc.add("WINDOW");
+       fangjtc.add("WINDOW");
+       //fangjtc.add("0");
+       fangjtc.add("COLUMN");
+       fangjtc.add("WALL");
+       strtc.add("STAIR");*/
+       
+       /*fileName="C:\\Users\\hello\\Documents\\NetBeansProjects\\extract\\readdxfmy2\\cad-data\\电三4c.dxf";
+       ypxl=550;//300;近似数
+       jsjl=340+50;//300;//平行线间的可近似距离，一般为墙宽度
+       szxpc=5;//竖直线的偏差
+       mentc.add("WINDOW");
+       fangjtc.add("WINDOW");
+       //fangjtc.add("0");
+       fangjtc.add("COLUMN");
+       fangjtc.add("WALL");
+       strtc.add("STAIR");*/
+       
+       /*fileName="C:\\Users\\hello\\Documents\\NetBeansProjects\\extract\\readdxfmy2\\cad-data\\电三5c.dxf";
+       ypxl=550;//300;近似数
+       jsjl=340+50;//300;//平行线间的可近似距离，一般为墙宽度
+       szxpc=5;//竖直线的偏差
+       mentc.add("WINDOW");
+       fangjtc.add("WINDOW");
+       //fangjtc.add("0");
+       fangjtc.add("COLUMN");
+       fangjtc.add("WALL");
+       strtc.add("STAIR");*/
+       
+       /*fileName="C:\\Users\\hello\\Documents\\NetBeansProjects\\extract\\readdxfmy2\\cad-data\\电三6c.dxf";
+       ypxl=550;//300;近似数
+       jsjl=340+50;//300;//平行线间的可近似距离，一般为墙宽度
+       szxpc=5;//竖直线的偏差
+       mentc.add("WINDOW");
+       fangjtc.add("WINDOW");
+       //fangjtc.add("0");
+       fangjtc.add("COLUMN");
+       fangjtc.add("WALL");
+       strtc.add("STAIR");*/
+       
+       /*fileName="C:\\Users\\hello\\Documents\\NetBeansProjects\\extract\\readdxfmy2\\cad-data\\电三7c.dxf";
+       ypxl=550;//300;近似数
+       jsjl=340+50;//300;//平行线间的可近似距离，一般为墙宽度
+       szxpc=5;//竖直线的偏差
+       mentc.add("WINDOW");
+       fangjtc.add("WINDOW");
+       //fangjtc.add("0");
+       fangjtc.add("COLUMN");
+       fangjtc.add("WALL");
+       strtc.add("STAIR");*/
+       
+       /*fileName="C:\\Users\\hello\\Documents\\NetBeansProjects\\extract\\readdxfmy2\\cad-data\\电三8c.dxf";
+       ypxl=550;//300;近似数
+       jsjl=340+50;//300;//平行线间的可近似距离，一般为墙宽度
+       szxpc=5;//竖直线的偏差
+       mentc.add("WINDOW");
+       fangjtc.add("WINDOW");
+       //fangjtc.add("0");
+       fangjtc.add("COLUMN");
+       fangjtc.add("WALL");
+       strtc.add("STAIR");*/
        
        /*fileName="E:\\cad-xx\\hospital-fengceng\\ground-ycl5.dxf";
        ypxl=550;//300;近似数
@@ -3912,7 +4026,7 @@ public class Readdxfmy2 {
        //walltc.add("WALL");
        //walltc.add("COLUMN");
        
-       DEBUG_STORE=true;
+       DEBUG_STORE=true;//false;
        readBlocks(bfr);
        readEntities(bfr);
        //createindex(); //创建索引。  感觉还是可以放在SQL文件里，因为创建数据库表还是要执行SQL文件的。在这里执行，如果索引不存在，drop index句就会异常。
@@ -3922,6 +4036,7 @@ public class Readdxfmy2 {
              //my_preprocess(roomlns,roomlns);
        Extract_Rooms();
        System.out.println("tmaxx:"+tmaxx+"\ntmaxy:"+tmaxy+"\ntminx:"+tminx+"\ntminy:"+tminy);
+       System.out.println("rmlnsmaxx:"+rmlnsmaxx+"\nrmlnsmaxy:"+rmlnsmaxy+"\nrmlnsminx:"+rmlnsminx+"\nrmlnsminy:"+rmlnsminy);
        bfr.close();
        fr.close();
        
