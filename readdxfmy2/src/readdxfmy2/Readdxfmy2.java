@@ -8,6 +8,7 @@
  * 在上一版本基础上修改：聚类，构建矩形，构造线
  * 在readdxfmy1基础上修改程序，能存入每个门对应的房间集合。 也修改了TUYUAN.java文件，增加了Line::is_vertical()函数
  * extract文件夹，即加入了git版本控制
+ * 
  */
 package readdxfmy2;
 
